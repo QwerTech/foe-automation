@@ -12,13 +12,14 @@ import win32con
 # opencv-python is required! (pip install opencv-python).
 
 # functions to be run, you can change these!
-collectGold = True  # collect gold from buildings.
-collectArmy = True  # collect gold from buildings.
-collectSupplies = True  # collect supplies from buildings.
-restartIdleBuildings = True  # restart any idle building.
-collectGoods = True  # collect goods from buildings other than supplies and gold.
-collectSocial = True  # automatically aid other people and accept friend requests.
-doZoomOut = True  # automatically zoom out
+collectGold = False  # collect gold from buildings.
+collectArmy = False  # collect gold from buildings.
+collectSupplies = False  # collect supplies from buildings.
+restartIdleBuildings = False  # restart any idle building.
+collectGoods = False  # collect goods from buildings other than supplies and gold.
+collectSocial = False  # automatically aid other people and accept friend requests.
+doZoomOut = False  # automatically zoom out
+collectGuild = True  # collect guild if full
 
 # One might need to change these based on screen resolution
 ydiff1 = 25
@@ -37,15 +38,9 @@ def processOutput(output):
     ycoord = int(output[1])
     # goto coordinates and click there
     lock.acquire()
-    pyautogui.moveTo(xcoord, ycoord, duration=randDur())
-    randSleepMs()
-    pyautogui.moveRel(0, ydiff1, duration=randint(5, 15) / 20)
-    randSleepMs()
+    pyautogui.moveTo(xcoord, ycoord + ydiff1, duration=randDur())
     pyautogui.click()
-    print("Bot has collected something from a building.")
-    randSleepMs()
-    pressEsc()
-    pressEsc()
+    logging.debug("Bot has collected something from a building.")
     pressEsc()
     lock.release()
 
@@ -59,7 +54,7 @@ def randSleepSec(fromSec=1, toSec=3):
     sleep(secs)
 
 
-def randDur(): return randint(5, 15) / 10
+def randDur(): return randint(50, 150) / 1000
 
 
 def processIdleOutput(output):
@@ -69,13 +64,11 @@ def processIdleOutput(output):
     ycoord += ydiff1
     # goto coordinates and click there
     lock.acquire()
-    pyautogui.moveTo(xcoord, ycoord, duration=randint(5, 15) / 10)
-    sleep(randint(12, 25) / 100)
+    pyautogui.moveTo(xcoord, ycoord, duration=randDur())
     pyautogui.click()
-    sleep(randint(70, 90) / 100)
+    randSleepMs()
     pyautogui.typewrite(['1', '2', '3', '4', '5'])
-    print("Bot has restarted a production building.")
-    sleep(randint(80, 100) / 100)
+    logging.debug("Bot has restarted a production building.")
     pressEsc()
     lock.release()
 
@@ -90,10 +83,10 @@ def processButtonOutput(output, suppressESC):
     # goto coordinates and click there
     pyautogui.moveTo(randint(xcoord + 1, xcoord + xcoord2 - 1),
                      randint(ycoord + 1, ycoord + ycoord2 - 1),
-                     duration=randint(2, 7) / 10)
+                     duration=randDur())
     # sleep(randint(12, 25) / 100)
     pyautogui.click()
-    logging.info("Bot has clicked a button.")
+    logging.debug("Bot has clicked a button.")
     if not suppressESC:
         pressEsc()
     lock.release()
@@ -136,7 +129,7 @@ def scroll(clicks=0, delta_x=0, delta_y=0, delay_between_ticks=0):
 
 
 def pressEsc():
-    sleep(randint(80, 100) / 100)
+    randSleepMs()
     pyautogui.typewrite(['esc'])
 
 
@@ -146,6 +139,7 @@ def goldCollector():  # gold icons
                  or findButton('gold2', confidence=0.895)
 
         if output is not None:
+            logging.info("Found gold %s", output)
             processOutput(output)
         else:
             randSleepSec(1, 3)
@@ -155,15 +149,17 @@ def processArmy():
     while True:
         output = findButton("army", confidence=0.905)
         if output is not None:
+            logging.info("Found army %s", output)
             processOutput(output)
         randSleepSec(5, 10)
 
 
 def processSupplies():  # supplies icons
     while True:
-        output = findButton('supplies1', confidence=0.805) \
-                 or findButton('supplies2', confidence=0.820)
+        output = findButton('supplies1', confidence=0.605) \
+                 or findButton('supplies2', confidence=0.620)
         if output is not None:
+            logging.info("Found supplies %s", output)
             processOutput(output)
         else:
             randSleepSec(3, 7)
@@ -173,6 +169,7 @@ def processIdleBuildings():  # idle building icons
     while True:
         output = findButton('idle1', confidence=0.545)
         if output is not None:
+            logging.info("Found idle %s", output)
             processIdleOutput(output)
         else:
             randSleepSec(3, 7)
@@ -182,6 +179,7 @@ def processGoods():  # goods boxes icons
     while True:
         output = findButton('goods1', confidence=0.885)
         if output is not None:
+            logging.info("Found good %s", output)
             processIdleOutput(output)
         else:
             randSleepSec(3, 7)
@@ -196,16 +194,19 @@ def processSocial():
 
 
 def processSoguildians():
+    logging.info("Precessing soguildians")
     processButtonOutput(findSoguildians(), True)
     processAllSocialPages()
 
 
 def processNeighbours():
+    logging.info("Precessing neighbours")
     processButtonOutput(findNeighbours(), True)
     processAllSocialPages()
 
 
 def processFriends():
+    logging.info("Precessing friends")
     processButtonOutput(findFriends(), True)
     processAllSocialPages()
 
@@ -232,6 +233,7 @@ def processSocialPage():
     while output is not None:
         output = findAnySocialButton()
         if output is not None:
+            logging.info("Precessing social button")
             processButtonOutput(output, True)
 
 
@@ -266,10 +268,13 @@ def findButtonsPanel(): return findButton('buttonsPanel')
 def findLandscape(): return findButton('landscape')
 
 
+def findGuild(): return findButton('guild')
+
+
 def findButton(picture, confidence=0.800):
     button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence,
                                       grayscale=True)
-    logging.info("Button %s found: %s", picture, button is not None)
+    logging.debug("Button %s found: %s", picture, button is not None)
     return button
 
 
@@ -296,7 +301,37 @@ def zoomOut():
         lock.release()
 
 
-# multithreading
+def processGuild():
+    while True:
+
+        guild = findGuild()
+        if guild is None:
+            randSleepSec(60, 120)
+            return
+        else:
+            pressEsc()
+        lock.acquire()
+        x = guild.left
+        y = guild.top + guild.height + 1
+        leftRegion = (x + 3, y, 8, 7)
+        rightRegion = (x + guild.width / 2 + 2, y, 8, 7)
+        leftScreen = pyautogui.screenshot(region=leftRegion)
+        rightScreen = pyautogui.screenshot(region=rightRegion)
+        found = pyautogui.locate(leftScreen, rightScreen, confidence=0.9)
+        lock.release()
+        if found:
+            logging.info("Found full guild")
+            pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1, duration=randDur())
+            pyautogui.click()
+            randSleepSec(1, 3)
+            processButtonOutput(findButton('guildGet'), False)
+        else:
+            logging.debug("Guild is not full")
+            pressEsc()
+        randSleepSec(60, 180)
+        # multithreading
+
+
 if collectGold:
     threading.Thread(name="golder", target=goldCollector).start()
 
@@ -317,3 +352,6 @@ if collectArmy:
 
 if doZoomOut:
     threading.Thread(name="zoomer", target=zoomOut()).start()
+
+if collectGuild:
+    threading.Thread(name="guilder", target=processGuild()).start()
