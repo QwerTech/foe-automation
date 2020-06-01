@@ -205,7 +205,8 @@ def processSupplies():  # supplies icons
 def findSupplies():
     return findButton('supplies1', confidence=0.705) \
            or findButton('supplies2', confidence=0.720) \
-           or findButton('supplies3', confidence=0.720)
+           or findButton('supplies3', confidence=0.720) \
+           or findButton('supplies4', confidence=0.720)
 
 
 def processIdleBuildings():  # idle building icons
