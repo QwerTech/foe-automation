@@ -5,3 +5,4 @@ opencv-python==4.2.0.34
 PyAutoGUI==0.9.50
 
 pywin32~=227
+keyboard~=0.13.5
