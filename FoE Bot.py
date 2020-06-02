@@ -21,6 +21,7 @@ collectGoods = True  # collect goods from buildings other than supplies and gold
 collectSocial = True  # automatically aid other people and accept friend requests.
 doZoomOut = False  # automatically zoom out
 collectGuild = True  # collect guild if full
+rebootExpired = True  # reboot if session expired
 
 # One might need to change these based on screen resolution
 ydiff1 = 55
@@ -58,7 +59,7 @@ def randSleepMs(fromMs=520, toMs=1250):
 def randSleepSec(fromSec=1, toSec=3):
     checkIfPaused()
     secs = randint(fromSec, toSec)
-    logging.debug("Seeping for %s secs.", secs)
+    logging.debug("Sleeping for %s secs.", secs)
     sleep(secs)
 
 
@@ -96,7 +97,7 @@ def checkIfPaused():
         sleep(1)
 
 
-def processButtonOutput(output, suppressESC):
+def pressButton(output, suppressESC):
     if output is None:
         logging.warning("There is no button")
         return
@@ -169,10 +170,10 @@ def goldCollector():  # gold icons
 
 
 def findGold():
-    return findButton('gold1', confidence=0.905) \
-           or findButton('gold2', confidence=0.895) \
-           or findButton('gold3', confidence=0.895) \
-           or findButton('gold4', confidence=0.795)
+    return findPic('gold1', confidence=0.905) \
+           or findPic('gold2', confidence=0.895) \
+           or findPic('gold3', confidence=0.895) \
+           or findPic('gold4', confidence=0.795)
 
 
 def processArmy():
@@ -185,7 +186,7 @@ def processArmy():
 
 
 def findArmy():
-    return findButton("army", confidence=0.905) or findButton("army2", confidence=0.805)
+    return findPic("army", confidence=0.905) or findPic("army2", confidence=0.805)
 
 
 def processSupplies():  # supplies icons
@@ -203,10 +204,10 @@ def processSupplies():  # supplies icons
 
 
 def findSupplies():
-    return findButton('supplies1', confidence=0.705) \
-           or findButton('supplies2', confidence=0.720) \
-           or findButton('supplies3', confidence=0.720) \
-           or findButton('supplies4', confidence=0.720)
+    return findPic('supplies1', confidence=0.705) \
+           or findPic('supplies2', confidence=0.720) \
+           or findPic('supplies3', confidence=0.720) \
+           or findPic('supplies4', confidence=0.720)
 
 
 def processIdleBuildings():  # idle building icons
@@ -220,9 +221,9 @@ def processIdleBuildings():  # idle building icons
 
 
 def findIdle():
-    return findButton('idle1', confidence=0.545) \
-           or findButton('idle2', confidence=0.545) \
-           or findButton('idle3', confidence=0.545)
+    return findPic('idle1', confidence=0.545) \
+           or findPic('idle2', confidence=0.545) \
+           or findPic('idle3', confidence=0.545)
 
 
 def processGoods():  # goods boxes icons
@@ -236,9 +237,9 @@ def processGoods():  # goods boxes icons
 
 
 def findGoods():
-    return findButton('goods1', confidence=0.885) \
-           or findButton('goods2', confidence=0.685) \
-           or findButton('goods3', confidence=0.685)
+    return findPic('goods1', confidence=0.885) \
+           or findPic('goods2', confidence=0.685) \
+           or findPic('goods3', confidence=0.685)
 
 
 def processSocial():
@@ -252,25 +253,25 @@ def processSocial():
 
 def processSoguildians():
     logging.info("Precessing soguildians")
-    processButtonOutput(findSoguildians(), True)
+    pressButton(findSoguildians(), True)
     processAllSocialPages()
 
 
 def processNeighbours():
     logging.info("Precessing neighbours")
-    processButtonOutput(findNeighbours(), True)
+    pressButton(findNeighbours(), True)
     processAllSocialPages()
 
 
 def processFriends():
     logging.info("Precessing friends")
-    processButtonOutput(findFriends(), True)
+    pressButton(findFriends(), True)
     processAllSocialPages()
 
 
 def processAllSocialPages():
     pages = 16
-    processButtonOutput(findFullFf(), True)
+    pressButton(findFullFf(), True)
     while pages >= 0:
         pages = pages - 1
         processSocialPage()
@@ -278,11 +279,11 @@ def processAllSocialPages():
 
 
 def nextPage():
-    output = findButton('next', confidence=0.800)
-    processButtonOutput(output, True)
+    output = findPic('next', confidence=0.800)
+    pressButton(output, True)
 
 
-def findTavern(): return findButton('tavern')
+def findTavern(): return findPic('tavern')
 
 
 def processSocialPage():
@@ -291,20 +292,20 @@ def processSocialPage():
         output = findAnySocialButton()
         if output is not None:
             logging.info("Precessing social button")
-            processButtonOutput(output, True)
+            pressButton(output, True)
 
 
 def findAnySocialButton():
     return findHelp() or findAccept() or findTavern()
 
 
-def findFullFf(): return findButton('full-ff', 0.9)
+def findFullFf(): return findPic('full-ff', 0.9)
 
 
-def findAccept(): return findButton('accept', 0.9)
+def findAccept(): return findPic('accept', 0.9)
 
 
-def findToCollect(): return findButton('toCollect', 0.95)
+def findToCollect(): return findPic('toCollect', 0.95)
 
 
 def isThereSomethingToCollect():
@@ -313,31 +314,31 @@ def isThereSomethingToCollect():
     return result
 
 
-def findFriends(): return findButton('friends', 0.9) \
-                          or findButton('friendsActive', 0.9)
+def findFriends(): return findPic('friends', 0.9) \
+                          or findPic('friendsActive', 0.9)
 
 
-def findSoguildians(): return findButton('soguildians', 0.9) \
-                              or findButton('soguldiansActive', 0.9)
+def findSoguildians(): return findPic('soguildians', 0.9) \
+                              or findPic('soguldiansActive', 0.9)
 
 
-def findNeighbours(): return findButton('neighbors', 0.9) \
-                             or findButton('neighborsActive', 0.9)
+def findNeighbours(): return findPic('neighbors', 0.9) \
+                             or findPic('neighborsActive', 0.9)
 
 
-def findHelp(): return findButton('help', 0.9)
+def findHelp(): return findPic('help', 0.9)
 
 
-def findButtonsPanel(): return findButton('buttonsPanel', 0.9)
+def findButtonsPanel(): return findPic('buttonsPanel', 0.9)
 
 
-def findLandscape(): return findButton('landscape', 0.9)
+def findLandscape(): return findPic('landscape', 0.9)
 
 
-def findGuild(): return findButton('guild')
+def findGuild(): return findPic('guild')
 
 
-def findButton(picture, confidence=0.800):
+def findPic(picture, confidence=0.800):
     checkIfPaused()
     button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence,
                                       grayscale=True)
@@ -393,12 +394,36 @@ def processGuild():
             pyautogui.click()
             randSleepSec(1, 3)
             unlockControl()
-            processButtonOutput(findButton('guildGet'), False)
+            pressButton(findPic('guildGet'), False)
         else:
             logging.debug("Guild is not full")
             pressEsc()
         randSleepSec(60, 180)
         # multithreading
+
+
+def rebootIfSessionExpired():
+    while True:
+        if findPic('sessionExpired') is not None:
+            pressButton(findPic('rebootNow'), True)
+            randSleepSec(5, 10)
+
+        playBtn = findPic('play')
+        if playBtn is not None:
+            pressButton(playBtn, True)
+            randSleepSec(5, 10)
+
+        worldBtn = findPic('world')
+        if worldBtn is not None:
+            pressButton(worldBtn, True)
+            randSleepSec(5, 10)
+
+        eventsPanel = findPic('events')
+        if eventsPanel is not None:
+            pressEsc()
+            randSleepSec(5, 10)
+
+        randSleepSec(1, 3)
 
 
 if collectGold:
@@ -424,3 +449,6 @@ if doZoomOut:
 
 if collectGuild:
     threading.Thread(name="guilder", target=processGuild()).start()
+
+if rebootExpired:
+    threading.Thread(name="rebooter", target=rebootIfSessionExpired()).start()
