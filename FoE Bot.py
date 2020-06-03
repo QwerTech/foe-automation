@@ -10,8 +10,6 @@ import pyautogui
 import win32api
 import win32con
 
-# opencv-python is required! (pip install opencv-python).
-
 # functions to be run, you can change these!
 collectGold = True  # collect gold from buildings.
 collectArmy = True  # collect gold from buildings.
@@ -22,6 +20,8 @@ collectSocial = True  # automatically aid other people and accept friend request
 doZoomOut = False  # automatically zoom out
 collectGuild = True  # collect guild if full
 rebootExpired = True  # reboot if session expired
+doSwitchScreens = True  # switch virtual screens to another accounts
+numberOfDesktops = 3  # number of virtual desktop screens
 
 # One might need to change these based on screen resolution
 ydiff1 = 55
@@ -241,13 +241,24 @@ def findGoods():
            or findPic('goods3', confidence=0.685)
 
 
+socialProcesses = []
+
+
 def processSocial():
     while True:
-        processes = [processFriends, processNeighbours, processSoguildians]
-        random.shuffle(processes)
-        for process in processes:
+        global socialProcesses
+        initSocialProcesses()
+        random.shuffle(socialProcesses)
+        while socialProcesses:
+            process = socialProcesses.pop()
             process()
         randSleepSec(300, 600)
+
+
+def initSocialProcesses():
+    global socialProcesses
+    # socialProcesses = [processFriends, processNeighbours, processSoguildians]
+    socialProcesses = [processNeighbours, processSoguildians]
 
 
 def processSoguildians():
@@ -269,7 +280,8 @@ def processFriends():
 
 
 def processAllSocialPages():
-    pages = 16
+    # pages = 16
+    pages = 3
     pressButton(findFullFf(), True)
     while pages >= 0:
         pages = pages - 1
@@ -401,7 +413,7 @@ def processGuild():
         # multithreading
 
 
-def rebootIfSessionExpired():
+def unstuck():
     while True:
         if findPic('sessionExpired') is not None:
             pressButton(findPic('rebootNow'), True)
@@ -422,32 +434,66 @@ def rebootIfSessionExpired():
             pressEsc()
             randSleepSec(5, 10)
 
+        if findPic('visitUnavailable') is not None:
+            pressButton(findPic('ok'), True)
+
         randSleepSec(1, 3)
 
 
-if collectGold:
-    threading.Thread(name="golder", target=goldCollector).start()
+currentDesktop = 2
 
-if collectSupplies:
-    threading.Thread(name="supplier", target=processSupplies).start()
 
-if restartIdleBuildings:
-    threading.Thread(name="idler", target=processIdleBuildings).start()
+def leftDesktop():
+    global currentDesktop
+    currentDesktop = currentDesktop - 1
+    pyautogui.hotkey('ctrl', 'win', 'left')
 
-if collectGoods:
-    threading.Thread(name="gooder", target=processGoods).start()
 
-if collectSocial:
-    threading.Thread(name="socialer", target=processSocial).start()
+def rightDesktop():
+    global currentDesktop
+    currentDesktop = currentDesktop + 1
+    pyautogui.hotkey('ctrl', 'win', 'right')
 
-if collectArmy:
-    threading.Thread(name="armer", target=processArmy).start()
 
-if doZoomOut:
-    threading.Thread(name="zoomer", target=zoomOut()).start()
+def moveToFirstDesktop():
+    global currentDesktop
+    lockControl()
+    for i in range(0, numberOfDesktops):
+        leftDesktop()
+        randSleepMs()
+    rightDesktop()
+    currentDesktop = 2
+    unlockControl()
 
-if collectGuild:
-    threading.Thread(name="guilder", target=processGuild()).start()
 
-if rebootExpired:
-    threading.Thread(name="rebooter", target=rebootIfSessionExpired()).start()
+moveToFirstDesktop()
+
+
+def switchScreens():
+    while True:
+        if not socialProcesses:
+
+            initSocialProcesses()
+            if currentDesktop == numberOfDesktops:
+                moveToFirstDesktop()
+            else:
+                lockControl()
+                rightDesktop()
+                unlockControl()
+
+
+def startBot(botFunction, toggle):
+    if toggle:
+        threading.Thread(name=botFunction.__name__, target=botFunction).start()
+
+
+startBot(goldCollector, collectGold)
+startBot(processSupplies, collectSupplies)
+startBot(processIdleBuildings, restartIdleBuildings)
+startBot(processGoods, collectGoods)
+startBot(processSocial, collectSocial)
+startBot(processArmy, collectArmy)
+startBot(zoomOut, doZoomOut)
+startBot(processGuild, collectGuild)
+startBot(unstuck, rebootExpired)
+startBot(switchScreens, doSwitchScreens)
