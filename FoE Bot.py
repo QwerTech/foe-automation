@@ -40,8 +40,7 @@ def processOutput(output):
     ycoord = int(output[1])
     # goto coordinates and click there
     lockControl()
-    pyautogui.moveTo(xcoord, ycoord, duration=randDur())
-    pyautogui.moveRel(0, ydiff1, duration=randDur())
+    pyautogui.moveTo(xcoord, ycoord + ydiff1, duration=randDur())
     pyautogui.click()
     pressEsc()
     pyautogui.moveRel(0, ydiff2, duration=randDur())
@@ -51,7 +50,7 @@ def processOutput(output):
     unlockControl()
 
 
-def randSleepMs(fromMs=520, toMs=1250):
+def randSleepMs(fromMs=220, toMs=550):
     checkIfPaused()
     sleep(randint(fromMs, toMs) / 1000)
 
