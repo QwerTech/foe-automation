@@ -21,14 +21,15 @@ doZoomOut = False  # automatically zoom out
 collectGuild = True  # collect guild if full
 rebootExpired = True  # reboot if session expired
 doSwitchScreens = True  # switch virtual screens to another accounts
-numberOfDesktops = 3  # number of virtual desktop screens
+numberOfDesktops = 5  # number of virtual desktop screens
+minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
 ydiff1 = 55
 ydiff2 = -20
 
 pyautogui.FAILSAFE = True
-lock = threading.Lock()
+lock = threading.RLock()
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -280,8 +281,8 @@ def processFriends():
 
 
 def processAllSocialPages():
-    # pages = 16
-    pages = 3
+    pages = 16
+    # pages = 3
     pressButton(findFullFf(), True)
     while pages >= 0:
         pages = pages - 1
@@ -292,6 +293,7 @@ def processAllSocialPages():
 def nextPage():
     output = findPic('next', confidence=0.800)
     pressButton(output, True)
+    randSleepMs()
 
 
 def findTavern(): return findPic('tavern')
@@ -410,7 +412,6 @@ def processGuild():
             logging.debug("Guild is not full")
             pressEsc()
         randSleepSec(60, 180)
-        # multithreading
 
 
 def unstuck():
@@ -447,12 +448,14 @@ def leftDesktop():
     global currentDesktop
     currentDesktop = currentDesktop - 1
     pyautogui.hotkey('ctrl', 'win', 'left')
+    randSleepMs()
 
 
 def rightDesktop():
     global currentDesktop
     currentDesktop = currentDesktop + 1
     pyautogui.hotkey('ctrl', 'win', 'right')
+    randSleepMs()
 
 
 def moveToFirstDesktop():
@@ -470,9 +473,10 @@ moveToFirstDesktop()
 
 
 def switchScreens():
+    start = time.time()
     while True:
-        if not socialProcesses:
-
+        if time.time() - start > minimumTimeOnDesktop:
+            start = time.time()
             initSocialProcesses()
             if currentDesktop == numberOfDesktops:
                 moveToFirstDesktop()
