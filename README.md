@@ -7,9 +7,11 @@ A bot made in Python 3.7 with pyautogui that collects gold, supplies and does so
 
 * ~~Figure out how to do markup on the README file.~~
 * ~~Collect soldiers/millitary stuff from army buildings ingame.~~
-* Collect special things
-* Reboot some time
+~~* Collect special things~~
+~~* Reboot some time~~
 * Collect settlement 
+* Collect antiquarian 
+* Stabilize tavern collection
 * add detection and correction for ingame glitches and announcements.
 
 

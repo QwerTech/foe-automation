@@ -1,7 +1,12 @@
+from __future__ import annotations
+
+import glob
 import logging
 import random
 import threading
 import time
+from datetime import datetime, timedelta
+from pathlib import Path
 from random import randint
 from time import sleep
 
@@ -9,19 +14,23 @@ import keyboard as kb
 import pyautogui
 import win32api
 import win32con
-
 # functions to be run, you can change these!
-collectGold = True  # collect gold from buildings.
-collectArmy = True  # collect gold from buildings.
-collectSupplies = True  # collect supplies from buildings.
-restartIdleBuildings = True  # restart any idle building.
-collectGoods = True  # collect goods from buildings other than supplies and gold.
-collectSocial = True  # automatically aid other people and accept friend requests.
+from waiting import wait, TimeoutExpired
+
+collectGold = False  # collect gold from buildings.
+collectArmy = False  # collect gold from buildings.
+collectSupplies = False  # collect supplies from buildings.
+restartIdleBuildings = False  # restart any idle building.
+collectGoods = False  # collect goods from buildings other than supplies and gold.
+collectSocial = False  # automatically aid other people and accept friend requests.
 doZoomOut = False  # automatically zoom out
-collectGuild = True  # collect guild if full
-rebootExpired = True  # reboot if session expired
-doSwitchScreens = True  # switch virtual screens to another accounts
-numberOfDesktops = 5  # number of virtual desktop screens
+collectGuild = False  # collect guild if full
+doUnstuck = False  # reboot if session expired
+doSwitchScreens = False  # switch virtual screens to another accounts
+rebootSomeTime = False  # reboot game some times
+doCollectLoot = True  # collect in-game loot
+
+numberOfDesktops = 4  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
@@ -33,6 +42,34 @@ lock = threading.RLock()
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
+
+
+class GameState:
+    games = []
+
+    def __init__(self):
+        self.lastRebooted = datetime.now()
+
+    @classmethod
+    def needToReboot(cls) -> bool:
+        global currentDesktop
+        return cls.getCurrentGameState().lastRebooted + timedelta(hours=1) < datetime.now()
+
+    @classmethod
+    def getCurrentGameState(cls) -> GameState:
+        return cls.games[currentDesktop]
+
+    @classmethod
+    def rebooted(cls):
+        cls.getCurrentGameState().lastRebooted = datetime.now()
+
+
+def initGamesState():
+    for i in range(1, numberOfDesktops):
+        GameState.games.append(GameState())
+
+
+initGamesState()
 
 
 def processOutput(output):
@@ -414,6 +451,20 @@ def processGuild():
         randSleepSec(60, 180)
 
 
+def reboot():
+    lockControl()
+    activateWindow()
+    pyautogui.press('f5')
+    GameState.rebooted()
+    sleep(1)
+    unlockControl()
+
+
+def activateWindow():
+    pyautogui.moveTo(pyautogui.size().width / 2, 15)
+    pyautogui.click()
+
+
 def unstuck():
     while True:
         if findPic('sessionExpired') is not None:
@@ -423,7 +474,6 @@ def unstuck():
         playBtn = findPic('play')
         if playBtn is not None:
             pressButton(playBtn, True)
-            randSleepSec(5, 10)
 
         worldBtn = findPic('world')
         if worldBtn is not None:
@@ -438,24 +488,31 @@ def unstuck():
         if findPic('visitUnavailable') is not None:
             pressButton(findPic('ok'), True)
 
+        if findPic('cannotHelp') is not None:
+            reboot()
+
         randSleepSec(1, 3)
 
 
-currentDesktop = 2
+currentDesktop = 1
 
 
 def leftDesktop():
     global currentDesktop
+    lockControl()
     currentDesktop = currentDesktop - 1
     pyautogui.hotkey('ctrl', 'win', 'left')
-    randSleepMs()
+    randSleepMs(500, 500)
+    unlockControl()
 
 
 def rightDesktop():
     global currentDesktop
+    lockControl()
     currentDesktop = currentDesktop + 1
     pyautogui.hotkey('ctrl', 'win', 'right')
-    randSleepMs()
+    randSleepMs(500, 500)
+    unlockControl()
 
 
 def moveToFirstDesktop():
@@ -463,13 +520,13 @@ def moveToFirstDesktop():
     lockControl()
     for i in range(0, numberOfDesktops):
         leftDesktop()
-        randSleepMs()
     rightDesktop()
-    currentDesktop = 2
+    currentDesktop = 1
     unlockControl()
 
 
-moveToFirstDesktop()
+if doSwitchScreens:
+    moveToFirstDesktop()
 
 
 def switchScreens():
@@ -491,6 +548,35 @@ def startBot(botFunction, toggle):
         threading.Thread(name=botFunction.__name__, target=botFunction).start()
 
 
+def rebooter():
+    while True:
+        wait(GameState.needToReboot)
+        reboot()
+
+
+def lootCollector():
+    while True:
+        loot = findLoot()
+        if loot is None:
+            # randSleepSec(300, 600)
+            randSleepMs()
+            continue
+        pressButton(loot, False)
+        try:
+            wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10)
+        except TimeoutExpired:
+            pass
+        pressEsc()
+
+
+def findLoot():
+    for file in glob.glob("resources/loot/*.png"):
+        name = Path(file).stem
+        pic = findPic(f"loot/{name}")
+        if pic is not None:
+            return pic
+
+
 startBot(goldCollector, collectGold)
 startBot(processSupplies, collectSupplies)
 startBot(processIdleBuildings, restartIdleBuildings)
@@ -499,5 +585,8 @@ startBot(processSocial, collectSocial)
 startBot(processArmy, collectArmy)
 startBot(zoomOut, doZoomOut)
 startBot(processGuild, collectGuild)
-startBot(unstuck, rebootExpired)
+startBot(unstuck, doUnstuck)
 startBot(switchScreens, doSwitchScreens)
+startBot(rebooter, rebootSomeTime)
+
+startBot(lootCollector, doCollectLoot)
