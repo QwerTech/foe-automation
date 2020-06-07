@@ -12,6 +12,7 @@ A bot made in Python 3.7 with pyautogui that collects gold, supplies and does so
 * Collect settlement 
 * Collect antiquarian 
 * Stabilize tavern collection
+* Speed up collecting stuff with waiting for collected icon
 * add detection and correction for ingame glitches and announcements.
 
 
