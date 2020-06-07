@@ -558,8 +558,8 @@ def lootCollector():
     while True:
         loot = findLoot()
         if loot is None:
-            # randSleepSec(300, 600)
-            randSleepMs()
+            randSleepSec(300, 600)
+            # randSleepMs()
             continue
         pressButton(loot, False)
         try:
@@ -570,11 +570,12 @@ def lootCollector():
 
 
 def findLoot():
-    for file in glob.glob("resources/loot/*.png"):
-        name = Path(file).stem
-        pic = findPic(f"loot/{name}")
-        if pic is not None:
-            return pic
+    for i in range(0, 10):
+        for file in glob.glob("resources/loot/*.png"):
+            name = Path(file).stem
+            pic = findPic(f"loot/{name}")
+            if pic is not None:
+                return pic
 
 
 startBot(goldCollector, collectGold)
