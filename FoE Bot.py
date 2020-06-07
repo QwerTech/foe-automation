@@ -17,17 +17,17 @@ import win32con
 # functions to be run, you can change these!
 from waiting import wait, TimeoutExpired
 
-collectGold = False  # collect gold from buildings.
-collectArmy = False  # collect gold from buildings.
-collectSupplies = False  # collect supplies from buildings.
-restartIdleBuildings = False  # restart any idle building.
-collectGoods = False  # collect goods from buildings other than supplies and gold.
-collectSocial = False  # automatically aid other people and accept friend requests.
-doZoomOut = False  # automatically zoom out
-collectGuild = False  # collect guild if full
-doUnstuck = False  # reboot if session expired
-doSwitchScreens = False  # switch virtual screens to another accounts
-rebootSomeTime = False  # reboot game some times
+collectGold = True  # collect gold from buildings.
+collectArmy = True  # collect gold from buildings.
+collectSupplies = True  # collect supplies from buildings.
+restartIdleBuildings = True  # restart any idle building.
+collectGoods = True  # collect goods from buildings other than supplies and gold.
+collectSocial = True  # automatically aid other people and accept friend requests.
+doZoomOut = True  # automatically zoom out
+collectGuild = True  # collect guild if full
+doUnstuck = True  # reboot if session expired
+doSwitchScreens = True  # switch virtual screens to another accounts
+rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
 numberOfDesktops = 4  # number of virtual desktop screens
@@ -295,8 +295,8 @@ def processSocial():
 
 def initSocialProcesses():
     global socialProcesses
-    # socialProcesses = [processFriends, processNeighbours, processSoguildians]
-    socialProcesses = [processNeighbours, processSoguildians]
+    socialProcesses = [processFriends, processNeighbours, processSoguildians]
+    # socialProcesses = [processNeighbours, processSoguildians]
 
 
 def processSoguildians():
