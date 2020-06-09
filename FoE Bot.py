@@ -30,7 +30,7 @@ doSwitchScreens = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
-numberOfDesktops = 4  # number of virtual desktop screens
+numberOfDesktops = 5  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
@@ -487,6 +487,13 @@ def unstuck():
 
         if findPic('visitUnavailable') is not None:
             pressButton(findPic('ok'), True)
+
+        returnToCity = findPic('returnToCity')
+        if returnToCity is not None:
+            pressButton(returnToCity, False)
+
+        if findPic('cannotHelp') is not None:
+            reboot()
 
         if findPic('cannotHelp') is not None:
             reboot()
