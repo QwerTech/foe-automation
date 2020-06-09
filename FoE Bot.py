@@ -440,11 +440,17 @@ def processGuild():
         if found:
             lockControl()
             logging.info("Found full guild")
-            pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1, duration=randDur())
+            pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1,
+                             duration=randDur())
             pyautogui.click()
-            randSleepSec(1, 3)
+            guildGet = findPic('guildGet')
+            tries = 10
+            while guildGet is None and tries > 0:
+                tries = tries - 1
+                randSleepSec(1, 3)
+                guildGet = findPic('guildGet')
+            pressButton(guildGet, False)
             unlockControl()
-            pressButton(findPic('guildGet'), False)
         else:
             logging.debug("Guild is not full")
             pressEsc()
@@ -491,9 +497,6 @@ def unstuck():
         returnToCity = findPic('returnToCity')
         if returnToCity is not None:
             pressButton(returnToCity, False)
-
-        if findPic('cannotHelp') is not None:
-            reboot()
 
         if findPic('cannotHelp') is not None:
             reboot()
