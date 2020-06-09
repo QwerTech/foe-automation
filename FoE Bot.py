@@ -30,7 +30,7 @@ doSwitchScreens = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
-numberOfDesktops = 5  # number of virtual desktop screens
+numberOfDesktops = 3  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
@@ -529,7 +529,7 @@ def rightDesktop():
 def moveToFirstDesktop():
     global currentDesktop
     lockControl()
-    for i in range(0, numberOfDesktops):
+    for i in range(0, numberOfDesktops - 1):
         leftDesktop()
     rightDesktop()
     currentDesktop = 1
@@ -544,14 +544,14 @@ def switchScreens():
     start = time.time()
     while True:
         if time.time() - start > minimumTimeOnDesktop:
+            lockControl()
             start = time.time()
             initSocialProcesses()
             if currentDesktop == numberOfDesktops - 1:
                 moveToFirstDesktop()
             else:
-                lockControl()
                 rightDesktop()
-                unlockControl()
+            unlockControl()
 
 
 def startBot(botFunction, toggle):
