@@ -57,6 +57,7 @@ class GameState:
 
     @classmethod
     def getCurrentGameState(cls) -> GameState:
+        global currentDesktop
         return cls.games[currentDesktop]
 
     @classmethod
@@ -545,7 +546,7 @@ def switchScreens():
         if time.time() - start > minimumTimeOnDesktop:
             start = time.time()
             initSocialProcesses()
-            if currentDesktop == numberOfDesktops:
+            if currentDesktop == numberOfDesktops - 1:
                 moveToFirstDesktop()
             else:
                 lockControl()
