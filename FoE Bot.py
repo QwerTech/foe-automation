@@ -52,17 +52,24 @@ class GameState:
 
     @classmethod
     def needToReboot(cls) -> bool:
-        global currentDesktop
-        return cls.getCurrentGameState().lastRebooted + timedelta(hours=1) < datetime.now()
+        game_state = cls.getCurrentGameState()
+        if game_state is None:
+            return False
+        return game_state.lastRebooted + timedelta(hours=1) < datetime.now()
 
     @classmethod
     def getCurrentGameState(cls) -> GameState:
         global currentDesktop
+        if currentDesktop == 0:
+            return None
         return cls.games[currentDesktop]
 
     @classmethod
     def rebooted(cls):
-        cls.getCurrentGameState().lastRebooted = datetime.now()
+        game_state = cls.getCurrentGameState()
+        if game_state is None:
+            return
+        game_state.lastRebooted = datetime.now()
 
 
 def initGamesState():
