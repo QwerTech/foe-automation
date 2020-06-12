@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import glob
-import logging
 import random
 import threading
 import time
@@ -11,11 +10,15 @@ from random import randint
 from time import sleep
 
 import keyboard as kb
-import pyautogui
 import win32api
 import win32con
 # functions to be run, you can change these!
 from waiting import wait, TimeoutExpired
+from win32api import GetKeyState
+from win32con import VK_SCROLL
+
+from foe_images import *
+from foe_pics import *
 
 collectGold = True  # collect gold from buildings.
 collectArmy = True  # collect gold from buildings.
