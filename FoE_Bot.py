@@ -33,14 +33,14 @@ doSwitchScreens = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
-numberOfDesktops = 3  # number of virtual desktop screens
+numberOfDesktops = 5  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
 ydiff1 = 55
 ydiff2 = -20
 
-pyautogui.FAILSAFE = True
+pyautogui.FAILSAFE = False
 lock = threading.RLock()
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
@@ -63,7 +63,7 @@ class GameState:
     @classmethod
     def getCurrentGameState(cls) -> GameState:
         global currentDesktop
-        if currentDesktop == 0:
+        if currentDesktop == 0 or currentDesktop > len(cls.games) - 1:
             return None
         return cls.games[currentDesktop]
 
@@ -141,7 +141,7 @@ def lockControl():
 
 
 def checkIfPaused():
-    while kb.is_pressed("ctrl"):
+    while kb.is_pressed("ctrl") or GetKeyState(VK_SCROLL) == 1:
         sleep(1)
 
 
@@ -207,107 +207,71 @@ def pressEsc():
 
 
 def goldCollector():  # gold icons
-    while True:
-        output = findGold()
+    output = findGold()
 
-        if output is not None:
-            logging.info("Found gold %s", output)
-            processOutput(output)
-        else:
-            randSleepSec(1, 3)
-
-
-def findGold():
-    return findPic('gold1', confidence=0.905) \
-           or findPic('gold2', confidence=0.895) \
-           or findPic('gold3', confidence=0.895) \
-           or findPic('gold4', confidence=0.795)
+    if output is not None:
+        logging.info("Found gold %s", output)
+        processOutput(output)
+    else:
+        randSleepSec(1, 3)
 
 
 def processArmy():
-    while True:
-        output = findArmy()
-        if output is not None:
-            logging.info("Found army %s", output)
-            processOutput(output)
-        randSleepSec(5, 10)
-
-
-def findArmy():
-    return findPic("army", confidence=0.905) or findPic("army2", confidence=0.805)
+    output = findArmy()
+    if output is not None:
+        logging.info("Found army %s", output)
+        processOutput(output)
+    randSleepSec(5, 10)
 
 
 def processSupplies():  # supplies icons
-    while True:
-        if not isThereSomethingToCollect():
-            randSleepSec(3, 7)
-            continue
+    if not isThereSomethingToCollect():
+        randSleepSec(3, 7)
+        return
 
-        output = findSupplies()
-        if output is not None:
-            logging.info("Found supplies %s", output)
-            processOutput(output)
-        else:
-            randSleepSec(3, 7)
-
-
-def findSupplies():
-    return findPic('supplies1', confidence=0.705) \
-           or findPic('supplies2', confidence=0.720) \
-           or findPic('supplies3', confidence=0.720) \
-           or findPic('supplies4', confidence=0.720)
+    output = findSupplies()
+    if output is not None:
+        logging.info("Found supplies %s", output)
+        processOutput(output)
+    else:
+        randSleepSec(3, 7)
 
 
 def processIdleBuildings():  # idle building icons
-    while True:
-        output = findIdle()
-        if output is not None:
-            logging.info("Found idle %s", output)
-            processIdleOutput(output)
-        else:
-            randSleepSec(3, 7)
-
-
-def findIdle():
-    return findPic('idle1', confidence=0.545) \
-           or findPic('idle2', confidence=0.545) \
-           or findPic('idle3', confidence=0.545)
+    output = findIdle()
+    if output is not None:
+        logging.info("Found idle %s", output)
+        processIdleOutput(output)
+    else:
+        randSleepSec(3, 7)
 
 
 def processGoods():  # goods boxes icons
-    while True:
-        output = findGoods()
-        if output is not None:
-            logging.info("Found good %s", output)
-            processIdleOutput(output)
-        else:
-            randSleepSec(3, 7)
-
-
-def findGoods():
-    return findPic('goods1', confidence=0.885) \
-           or findPic('goods2', confidence=0.685) \
-           or findPic('goods3', confidence=0.685)
+    output = findGoods()
+    if output is not None:
+        logging.info("Found good %s", output)
+        processIdleOutput(output)
+    else:
+        randSleepSec(3, 7)
 
 
 socialProcesses = []
 
 
 def processSocial():
-    while True:
-        global socialProcesses
-        initSocialProcesses()
-        random.shuffle(socialProcesses)
-        while socialProcesses:
-            process = socialProcesses.pop()
-            process()
-        randSleepSec(300, 600)
+    global socialProcesses
+    initSocialProcesses()
+    random.shuffle(socialProcesses)
+    while socialProcesses:
+        process = socialProcesses.pop()
+        process()
+    randSleepSec(300, 600)
 
 
 def initSocialProcesses():
     global socialProcesses
     socialProcesses = [processFriends, processNeighbours, processSoguildians]
-    # socialProcesses = [processNeighbours, processSoguildians]
+    # socialProcesses = [processSoguildians]
 
 
 def processSoguildians():
@@ -331,20 +295,22 @@ def processFriends():
 def processAllSocialPages():
     pages = 16
     # pages = 3
+    lastPage = False
     pressButton(findFullFf(), True)
-    while pages >= 0:
+    while pages >= 0 and not lastPage:
         pages = pages - 1
         processSocialPage()
-        nextPage()
+        lastPage = nextPage()
 
 
 def nextPage():
-    output = findPic('next', confidence=0.800)
-    pressButton(output, True)
+    nextBtn = findNext()
+    friendsRegion = [nextBtn.left - 640, nextBtn.top - 50, 530, 80]
+    before = pyautogui.screenshot(region=friendsRegion)
+    pressButton(nextBtn, True)
     randSleepMs()
-
-
-def findTavern(): return findPic('tavern')
+    after = pyautogui.screenshot(region=friendsRegion)
+    return same(before, after)
 
 
 def processSocialPage():
@@ -356,116 +322,68 @@ def processSocialPage():
             pressButton(output, True)
 
 
-def findAnySocialButton():
-    return findHelp() or findAccept() or findTavern()
-
-
-def findFullFf(): return findPic('full-ff', 0.9)
-
-
-def findAccept(): return findPic('accept', 0.9)
-
-
-def findToCollect(): return findPic('toCollect', 0.95)
-
-
 def isThereSomethingToCollect():
     result = findToCollect() is not None
     logging.debug("isThereSomethingToCollect: %s", result)
     return result
 
 
-def findFriends(): return findPic('friends', 0.9) \
-                          or findPic('friendsActive', 0.9)
-
-
-def findSoguildians(): return findPic('soguildians', 0.9) \
-                              or findPic('soguldiansActive', 0.9)
-
-
-def findNeighbours(): return findPic('neighbors', 0.9) \
-                             or findPic('neighborsActive', 0.9)
-
-
-def findHelp(): return findPic('help', 0.9)
-
-
-def findButtonsPanel(): return findPic('buttonsPanel', 0.9)
-
-
-def findLandscape(): return findPic('landscape', 0.9)
-
-
-def findGuild(): return findPic('guild')
-
-
-def findPic(picture, confidence=0.800):
-    checkIfPaused()
-    button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence,
-                                      grayscale=True)
-    logging.debug("Button %s found: %s", picture, button is not None)
-    return button
-
-
 def zoomOut():
-    while True:
-        if findLandscape() is not None:
-            randSleepSec(60, 120)
-            return
-        panel = findButtonsPanel()
-        if panel is None:
-            randSleepSec(5, 10)
-            return
-        lockControl()
-        logging.info("Zooming out")
-        pyautogui.moveTo(panel[0], panel[1], duration=randDur())
-        pyautogui.moveRel(50, -50, duration=randDur())
-        pyautogui.click()
-        randSleepMs()
-        scroll(-1, 1)
-        randSleepMs()
-        scroll(-1, 1)
+    if findLandscape() is not None:
         randSleepSec(60, 120)
-        logging.info("Zoomed out")
-        unlockControl()
+        return
+    panel = findButtonsPanel()
+    if panel is None:
+        randSleepSec(5, 10)
+        return
+    lockControl()
+    logging.info("Zooming out")
+    pyautogui.moveTo(panel[0], panel[1], duration=randDur())
+    pyautogui.moveRel(50, -50, duration=randDur())
+    pyautogui.click()
+    randSleepMs()
+    scroll(-1, 1)
+    randSleepMs()
+    scroll(-1, 1)
+    randSleepSec(60, 120)
+    logging.info("Zoomed out")
+    unlockControl()
 
 
 def processGuild():
-    while True:
-
-        guild = findGuild()
-        if guild is None:
-            randSleepSec(60, 120)
-            return
-        else:
-            pressEsc()
+    guild = findGuild()
+    if guild is None:
+        randSleepSec(60, 120)
+        return
+    else:
+        pressEsc()
+    lockControl()
+    x = guild.left
+    y = guild.top + guild.height + 1
+    leftRegion = (x + 3, y, 8, 7)
+    rightRegion = (x + guild.width / 2 + 2, y, 8, 7)
+    leftScreen = pyautogui.screenshot(region=leftRegion)
+    rightScreen = pyautogui.screenshot(region=rightRegion)
+    found = pyautogui.locate(leftScreen, rightScreen, confidence=0.8)
+    unlockControl()
+    if found:
         lockControl()
-        x = guild.left
-        y = guild.top + guild.height + 1
-        leftRegion = (x + 3, y, 8, 7)
-        rightRegion = (x + guild.width / 2 + 2, y, 8, 7)
-        leftScreen = pyautogui.screenshot(region=leftRegion)
-        rightScreen = pyautogui.screenshot(region=rightRegion)
-        found = pyautogui.locate(leftScreen, rightScreen, confidence=0.9)
-        unlockControl()
-        if found:
-            lockControl()
-            logging.info("Found full guild")
-            pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1,
-                             duration=randDur())
-            pyautogui.click()
+        logging.info("Found full guild")
+        pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1,
+                         duration=randDur())
+        pyautogui.click()
+        guildGet = findPic('guildGet')
+        tries = 10
+        while guildGet is None and tries > 0:
+            tries = tries - 1
+            randSleepSec(1, 3)
             guildGet = findPic('guildGet')
-            tries = 10
-            while guildGet is None and tries > 0:
-                tries = tries - 1
-                randSleepSec(1, 3)
-                guildGet = findPic('guildGet')
-            pressButton(guildGet, False)
-            unlockControl()
-        else:
-            logging.debug("Guild is not full")
-            pressEsc()
-        randSleepSec(60, 180)
+        pressButton(guildGet, False)
+        unlockControl()
+    else:
+        logging.debug("Guild is not full")
+        pressEsc()
+    randSleepSec(60, 180)
 
 
 def reboot():
@@ -483,36 +401,35 @@ def activateWindow():
 
 
 def unstuck():
-    while True:
-        if findPic('sessionExpired') is not None:
-            pressButton(findPic('rebootNow'), True)
-            randSleepSec(5, 10)
+    if findPic('sessionExpired') is not None:
+        pressButton(findPic('rebootNow'), True)
+        randSleepSec(5, 10)
 
-        playBtn = findPic('play')
-        if playBtn is not None:
-            pressButton(playBtn, True)
+    playBtn = findPic('play')
+    if playBtn is not None:
+        pressButton(playBtn, True)
 
-        worldBtn = findPic('world')
-        if worldBtn is not None:
-            pressButton(worldBtn, True)
-            randSleepSec(5, 10)
+    worldBtn = findPic('world')
+    if worldBtn is not None:
+        pressButton(worldBtn, True)
+        randSleepSec(5, 10)
 
-        eventsPanel = findPic('events')
-        if eventsPanel is not None:
-            pressEsc()
-            randSleepSec(5, 10)
+    eventsPanel = findPic('events')
+    if eventsPanel is not None:
+        pressEsc()
+        randSleepSec(5, 10)
 
-        if findPic('visitUnavailable') is not None:
-            pressButton(findPic('ok'), True)
+    if findPic('visitUnavailable') is not None:
+        pressButton(findPic('ok'), True)
 
-        returnToCity = findPic('returnToCity')
-        if returnToCity is not None:
-            pressButton(returnToCity, False)
+    returnToCity = findPic('returnToCity')
+    if returnToCity is not None:
+        pressButton(returnToCity, False)
 
-        if findPic('cannotHelp') is not None:
-            reboot()
+    if findPic('cannotHelp') is not None:
+        reboot()
 
-        randSleepSec(1, 3)
+    randSleepSec(1, 3)
 
 
 currentDesktop = 1
@@ -549,45 +466,44 @@ def moveToFirstDesktop():
 if doSwitchScreens:
     moveToFirstDesktop()
 
+start = time.time()
+
 
 def switchScreens():
-    start = time.time()
-    while True:
-        if time.time() - start > minimumTimeOnDesktop:
-            lockControl()
-            start = time.time()
-            initSocialProcesses()
-            if currentDesktop == numberOfDesktops - 1:
-                moveToFirstDesktop()
-            else:
-                rightDesktop()
-            unlockControl()
+    global start
+    if time.time() - start > minimumTimeOnDesktop:
+        lockControl()
+        start = time.time()
+        initSocialProcesses()
+        if currentDesktop == numberOfDesktops - 1:
+            moveToFirstDesktop()
+        else:
+            rightDesktop()
+        unlockControl()
 
 
 def startBot(botFunction, toggle):
     if toggle:
-        threading.Thread(name=botFunction.__name__, target=botFunction).start()
+        threading.Thread(name=botFunction.__name__, target=safeInfiniteLoopFactory(botFunction)).start()
 
 
 def rebooter():
-    while True:
-        wait(GameState.needToReboot)
-        reboot()
+    wait(GameState.needToReboot)
+    reboot()
 
 
 def lootCollector():
-    while True:
-        loot = findLoot()
-        if loot is None:
-            randSleepSec(300, 600)
-            # randSleepMs()
-            continue
-        pressButton(loot, False)
-        try:
-            wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10)
-        except TimeoutExpired:
-            pass
-        pressEsc()
+    loot = findLoot()
+    if loot is None:
+        randSleepSec(300, 600)
+        # randSleepMs()
+        return
+    pressButton(loot, False)
+    try:
+        wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10)
+    except TimeoutExpired:
+        pass
+    pressEsc()
 
 
 def findLoot():
@@ -597,6 +513,19 @@ def findLoot():
             pic = findPic(f"loot/{name}")
             if pic is not None:
                 return pic
+
+
+def safeInfiniteLoopFactory(func):
+    return lambda: safeInfiniteLoop(func)
+
+
+def safeInfiniteLoop(func):
+    while True:
+        try:
+            checkIfPaused()
+            func()
+        except:
+            pass
 
 
 startBot(goldCollector, collectGold)
