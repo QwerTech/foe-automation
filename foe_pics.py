@@ -16,9 +16,14 @@ def findArmy():
 
 def findGold():
     return findPic('gold1', confidence=0.905) \
+           or findPic('goldStar', confidence=0.805) \
            or findPic('gold2', confidence=0.895) \
            or findPic('gold3', confidence=0.895) \
            or findPic('gold4', confidence=0.795)
+
+
+def findGoldCollected(region):
+    return findPic('goldCollected', confidence=0.905, region=region)
 
 
 def findGoods():
@@ -38,6 +43,10 @@ def findSupplies():
            or findPic('supplies2', confidence=0.720) \
            or findPic('supplies3', confidence=0.720) \
            or findPic('supplies4', confidence=0.720)
+
+
+def findSuppliesCollected():
+    return findPic('suppliesCollected', confidence=0.805)
 
 
 def findTavern(): return findPic('tavern')
@@ -73,9 +82,13 @@ def findLandscape(): return findPic('landscape', 0.9)
 def findGuild(): return findPic('guild')
 
 
-def findPic(picture, confidence=0.800):
-    button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence,
-                                      grayscale=True)
+def findPic(picture, confidence=0.800, region=None):
+    if region is None:
+        button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True)
+    else:
+        pyautogui.screenshot(region=region, imageFilename="screenshot.png")
+        button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True,
+                                          region=region)
     logging.debug("Button %s found: %s", picture, button is not None)
     return button
 

@@ -84,19 +84,29 @@ initGamesState()
 
 
 def processOutput(output):
-    # get coordinates to click from output
-    xcoord = int(output[0])
-    ycoord = int(output[1])
-    # goto coordinates and click there
     lockControl()
-    pyautogui.moveTo(xcoord, ycoord + ydiff1, duration=randDur())
-    pyautogui.click()
+    # get coordinates to click from output
+    pressCollect1(output)
     pressEsc()
-    pyautogui.moveRel(0, ydiff2, duration=randDur())
-    pyautogui.click()
+    pressCollect2(output)
     logging.debug("Bot has collected something from a building.")
     pressEsc()
     unlockControl()
+
+
+def pressCollect1(output):
+    # goto coordinates and click there
+    moveAndClick(output.left, output.top + ydiff1)
+
+
+def pressCollect2(output):
+    # goto coordinates and click there
+    moveAndClick(output.left, output.top + ydiff1 + ydiff2)
+
+
+def moveAndClick(left, top):
+    pyautogui.moveTo(left, top, duration=randDur())
+    pyautogui.click()
 
 
 def randSleepMs(fromMs=220, toMs=550):
@@ -211,9 +221,31 @@ def goldCollector():  # gold icons
 
     if output is not None:
         logging.info("Found gold %s", output)
-        processOutput(output)
+        lockControl()
+        # get coordinates to click from output
+        pressCollect1(output)
+        if waitCollected(output.left, output.top + ydiff1):
+            return
+
+        pressEsc()
+        pressCollect2(output)
+        if waitCollected(output.left, output.top + ydiff1 + ydiff2):
+            return
+
+        pressEsc()
+        unlockControl()
     else:
         randSleepSec(1, 3)
+
+
+def waitCollected(left, top):
+    try:
+        region = [left - 10, top - 70, 50, 80]
+        wait(lambda: findGoldCollected(region) is not None, timeout_seconds=0.5, sleep_seconds=0)
+        logging.debug("Bot has collected gold something from a building.")
+        return True
+    except TimeoutExpired:
+        return False
 
 
 def processArmy():
@@ -500,7 +532,7 @@ def lootCollector():
         return
     pressButton(loot, False)
     try:
-        wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10)
+        wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10, sleep_seconds=0.5)
     except TimeoutExpired:
         pass
     pressEsc()
