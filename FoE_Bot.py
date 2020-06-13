@@ -15,8 +15,6 @@ import win32api
 import win32con
 # functions to be run, you can change these!
 from waiting import wait, TimeoutExpired
-from win32api import GetKeyState
-from win32con import VK_SCROLL
 
 from foe_images import *
 from foe_pics import *
@@ -30,18 +28,19 @@ collectSocial = True  # automatically aid other people and accept friend request
 doZoomOut = True  # automatically zoom out
 collectGuild = True  # collect guild if full
 doUnstuck = True  # reboot if session expired
-doSwitchScreens = True  # switch virtual screens to another accounts
+doSwitchScreens = False  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
 numberOfDesktops = 5  # number of virtual desktop screens
-minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
+minimumTimeOnDesktop = 60  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
-ydiff1 = 55
-ydiff2 = -20
+ydiff1 = 60
+ydiff2 = -25
 
 pyautogui.FAILSAFE = False
+pyautogui.PAUSE = 0
 lock = threading.RLock()
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
@@ -126,14 +125,11 @@ def randDur(): return randint(150, 750) / 1000
 
 
 def processIdleOutput(output):
-    # get coordinates to click from output
-    xcoord = int(output[0])
-    ycoord = int(output[1])
-    ycoord += ydiff1
-    # goto coordinates and click there
     lockControl()
-    pyautogui.moveTo(xcoord, ycoord, duration=randDur())
-    pyautogui.click()
+    pressCollect1(output)
+    randSleepMs()
+    pyautogui.typewrite(['1', '2', '3', '4', '5'])
+    pressCollect2(output)
     randSleepMs()
     pyautogui.typewrite(['1', '2', '3', '4', '5'])
     logging.debug("Bot has restarted a production building.")
@@ -152,7 +148,7 @@ def lockControl():
 
 
 def checkIfPaused():
-    while kb.is_pressed("ctrl") or GetKeyState(VK_SCROLL) == 1:
+    while kb.is_pressed("ctrl"):  # or GetKeyState(VK_SCROLL) == 1:
         sleep(1)
 
 
@@ -225,12 +221,12 @@ def goldCollector():  # gold icons
         lockControl()
         # get coordinates to click from output
         pressCollect1(output)
-        if waitCollected(output.left, output.top + ydiff1):
+        if waitGoldCollected(output.left, output.top + ydiff1):
             return
 
         pressEsc()
         pressCollect2(output)
-        if waitCollected(output.left, output.top + ydiff1 + ydiff2):
+        if waitGoldCollected(output.left, output.top + ydiff1 + ydiff2):
             return
 
         pressEsc()
@@ -239,11 +235,28 @@ def goldCollector():  # gold icons
         randSleepSec(5, 15)
 
 
-def waitCollected(left, top):
-    try:
-        region = [left - 10, top - 70, 50, 80]
-        wait(lambda: findGoldCollected(region) is not None, timeout_seconds=0.5, sleep_seconds=0)
+def waitGoldCollected(left, top):
+    region = [left - 10, top - 70, 50, 80]
+    if waitCollected(lambda: findGoldCollected(region)):
         logging.debug("Bot has collected gold something from a building.")
+        return True
+    else:
+        return False
+
+
+def waitSuppliesCollected(left, top):
+    region = [left - 20, top - 70, 70, 80]
+    if waitCollected(lambda: findSuppliesCollected(region)):
+        logging.debug("Bot has collected supplies something from a building.")
+        return True
+    else:
+        return False
+
+
+def waitCollected(findPicFunc):
+    try:
+        wait(lambda: findPicFunc() is not None, timeout_seconds=0.5, sleep_seconds=0)
+
         return True
     except TimeoutExpired:
         return False
@@ -261,7 +274,19 @@ def processSupplies():  # supplies icons
     output = findSupplies()
     if output is not None:
         logging.info("Found supplies %s", output)
-        processOutput(output)
+        lockControl()
+        # get coordinates to click from output
+        pressCollect1(output)
+        if waitSuppliesCollected(output.left, output.top + ydiff1):
+            return
+
+        pressEsc()
+        pressCollect2(output)
+        if waitSuppliesCollected(output.left, output.top + ydiff1 + ydiff2):
+            return
+
+        pressEsc()
+        unlockControl()
     else:
         randSleepSec(3, 7)
 
@@ -514,7 +539,9 @@ def switchScreens():
 
 def startBot(botFunction, toggle):
     if toggle:
-        threading.Thread(name=botFunction.__name__, target=safeInfiniteLoopFactory(botFunction)).start()
+        botName = botFunction.__name__
+        logging.info("Starting bot " + botName)
+        threading.Thread(name=botName, target=safeInfiniteLoopFactory(botFunction)).start()
 
 
 def rebooter():
@@ -537,14 +564,14 @@ def lootCollector():
 
 
 def findLoot():
-    for i in range(0, 10):
-        randSleepSec()
-        for file in glob.glob("resources/loot/*.png"):
-            name = Path(file).stem
-            pic = findPic(f"loot/{name}")
-            if pic is not None:
-                return pic
-            randSleepMs()
+    # for i in range(0, 10):
+    randSleepSec()
+    for file in glob.glob("resources/loot/*.png"):
+        name = Path(file).stem
+        pic = findPic(f"loot/{name}")
+        if pic is not None:
+            return pic
+        randSleepMs()
 
 
 def safeInfiniteLoopFactory(func):
@@ -554,10 +581,12 @@ def safeInfiniteLoopFactory(func):
 def safeInfiniteLoop(func):
     while True:
         try:
+            logging.info("Bot iteration")
             checkIfPaused()
             func()
         except Exception as e:
             logging.error(traceback.format_exc())
+            logging.error(e)
 
 
 startBot(goldCollector, collectGold)

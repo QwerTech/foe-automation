@@ -1,18 +1,18 @@
 import unittest
 
 from PIL import Image
-from win32api import GetKeyState
-from win32con import VK_SCROLL
 
 from foe_images import *
+from foe_pics import *
 
 root = 'testresources/'
 
 
 class MyTestCase(unittest.TestCase):
+
     def test_something(self):
-        state = GetKeyState(VK_SCROLL)
-        self.assertEqual(0, state)
+        find_next = findNext()
+        print(find_next)
 
     def test_image_compare(self):
         initial = Image.open(root + 'friends1.png')

@@ -45,8 +45,8 @@ def findSupplies():
            or findPic('supplies4', confidence=0.720)
 
 
-def findSuppliesCollected():
-    return findPic('suppliesCollected', confidence=0.805)
+def findSuppliesCollected(region):
+    return findPic('suppliesCollected', confidence=0.805, region=region)
 
 
 def findTavern(): return findPic('tavern')
@@ -86,7 +86,7 @@ def findPic(picture, confidence=0.800, region=None):
     if region is None:
         button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True)
     else:
-        pyautogui.screenshot(region=region)
+        # pyautogui.screenshot(region=region, imageFilename="screenshot.png")
         button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True,
                                           region=region)
     logging.debug("Button %s found: %s", picture, button is not None)
