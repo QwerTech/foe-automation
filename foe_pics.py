@@ -86,7 +86,7 @@ def findPic(picture, confidence=0.800, region=None):
     if region is None:
         button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True)
     else:
-        pyautogui.screenshot(region=region, imageFilename="screenshot.png")
+        pyautogui.screenshot(region=region)
         button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True,
                                           region=region)
     logging.debug("Button %s found: %s", picture, button is not None)

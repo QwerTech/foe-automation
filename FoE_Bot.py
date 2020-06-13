@@ -4,6 +4,7 @@ import glob
 import random
 import threading
 import time
+import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import randint
@@ -235,7 +236,7 @@ def goldCollector():  # gold icons
         pressEsc()
         unlockControl()
     else:
-        randSleepSec(1, 3)
+        randSleepSec(5, 15)
 
 
 def waitCollected(left, top):
@@ -257,10 +258,6 @@ def processArmy():
 
 
 def processSupplies():  # supplies icons
-    if not isThereSomethingToCollect():
-        randSleepSec(3, 7)
-        return
-
     output = findSupplies()
     if output is not None:
         logging.info("Found supplies %s", output)
@@ -352,6 +349,7 @@ def processSocialPage():
         if output is not None:
             logging.info("Precessing social button")
             pressButton(output, True)
+            randSleepMs(500, 900)
 
 
 def isThereSomethingToCollect():
@@ -461,7 +459,7 @@ def unstuck():
     if findPic('cannotHelp') is not None:
         reboot()
 
-    randSleepSec(1, 3)
+    randSleepSec(5, 15)
 
 
 currentDesktop = 1
@@ -540,11 +538,13 @@ def lootCollector():
 
 def findLoot():
     for i in range(0, 10):
+        randSleepSec()
         for file in glob.glob("resources/loot/*.png"):
             name = Path(file).stem
             pic = findPic(f"loot/{name}")
             if pic is not None:
                 return pic
+            randSleepMs()
 
 
 def safeInfiniteLoopFactory(func):
@@ -556,8 +556,8 @@ def safeInfiniteLoop(func):
         try:
             checkIfPaused()
             func()
-        except:
-            pass
+        except Exception as e:
+            logging.error(traceback.format_exc())
 
 
 startBot(goldCollector, collectGold)
