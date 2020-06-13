@@ -15,6 +15,8 @@ import win32api
 import win32con
 # functions to be run, you can change these!
 from waiting import wait, TimeoutExpired
+from win32api import GetKeyState
+from win32con import VK_SCROLL
 
 from foe_images import *
 from foe_pics import *
@@ -42,9 +44,6 @@ ydiff2 = -25
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
 lock = threading.RLock()
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
 
 
 class GameState:
@@ -84,14 +83,14 @@ initGamesState()
 
 
 def processOutput(output):
-    lockControl()
-    # get coordinates to click from output
-    pressCollect1(output)
-    pressEsc()
-    pressCollect2(output)
-    logging.debug("Bot has collected something from a building.")
-    pressEsc()
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        # get coordinates to click from output
+        pressCollect1(output)
+        pressEsc()
+        pressCollect2(output)
+        logging.debug("Bot has collected something from a building.")
+        pressEsc()
 
 
 def pressCollect1(output):
@@ -105,8 +104,10 @@ def pressCollect2(output):
 
 
 def moveAndClick(left, top):
-    pyautogui.moveTo(left, top, duration=randDur())
-    pyautogui.click()
+    with lock:
+        checkIfPaused()
+        pyautogui.moveTo(left, top, duration=randDur())
+        pyautogui.click()
 
 
 def randSleepMs(fromMs=220, toMs=550):
@@ -125,30 +126,19 @@ def randDur(): return randint(150, 750) / 1000
 
 
 def processIdleOutput(output):
-    lockControl()
-    pressCollect1(output)
-    randSleepMs()
-    pyautogui.typewrite(['1', '2', '3', '4', '5'])
-    pressCollect2(output)
-    randSleepMs()
-    pyautogui.typewrite(['1', '2', '3', '4', '5'])
-    logging.debug("Bot has restarted a production building.")
-    pressEsc()
-    unlockControl()
-
-
-def unlockControl():
-    checkIfPaused()
-    lock.release()
-
-
-def lockControl():
-    checkIfPaused()
-    lock.acquire()
+    with lock:
+        pressCollect1(output)
+        randSleepMs()
+        pyautogui.typewrite(['1', '2', '3', '4', '5'])
+        pressCollect2(output)
+        randSleepMs()
+        pyautogui.typewrite(['1', '2', '3', '4', '5'])
+        logging.debug("Bot has restarted a production building.")
+        pressEsc()
 
 
 def checkIfPaused():
-    while kb.is_pressed("ctrl"):  # or GetKeyState(VK_SCROLL) == 1:
+    while kb.is_pressed("ctrl") or GetKeyState(VK_SCROLL) == 1:
         sleep(1)
 
 
@@ -156,19 +146,19 @@ def pressButton(output, suppressESC):
     if output is None:
         logging.warning("There is no button")
         return
-    lockControl()
-    # get coordinates to click from output
-    xcoord, ycoord, xcoord2, ycoord2 = output
-    # goto coordinates and click there
-    pyautogui.moveTo(randint(xcoord + 1, xcoord + xcoord2 - 1),
-                     randint(ycoord + 1, ycoord + ycoord2 - 1),
-                     duration=randDur())
-    # sleep(randint(12, 25) / 100)
-    pyautogui.click()
-    logging.debug("Bot has clicked a button.")
-    if not suppressESC:
-        pressEsc()
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        # get coordinates to click from output
+        xcoord, ycoord, xcoord2, ycoord2 = output
+        # goto coordinates and click there
+        pyautogui.moveTo(randint(xcoord + 1, xcoord + xcoord2 - 1),
+                         randint(ycoord + 1, ycoord + ycoord2 - 1),
+                         duration=randDur())
+        # sleep(randint(12, 25) / 100)
+        pyautogui.click()
+        logging.debug("Bot has clicked a button.")
+        if not suppressESC:
+            pressEsc()
 
 
 def scroll(clicks=0, delta_x=0, delta_y=0, delay_between_ticks=0):
@@ -218,26 +208,26 @@ def goldCollector():  # gold icons
 
     if output is not None:
         logging.info("Found gold %s", output)
-        lockControl()
-        # get coordinates to click from output
-        pressCollect1(output)
-        if waitGoldCollected(output.left, output.top + ydiff1):
-            return
+        with lock:
+            checkIfPaused()
+            # get coordinates to click from output
+            pressCollect1(output)
+            if waitGoldCollected(output.left, output.top + ydiff1):
+                return
 
-        pressEsc()
-        pressCollect2(output)
-        if waitGoldCollected(output.left, output.top + ydiff1 + ydiff2):
-            return
+            pressEsc()
+            pressCollect2(output)
+            if waitGoldCollected(output.left, output.top + ydiff1 + ydiff2):
+                return
 
-        pressEsc()
-        unlockControl()
+            pressEsc()
     else:
         randSleepSec(5, 15)
 
 
 def waitGoldCollected(left, top):
     region = [left - 10, top - 70, 50, 80]
-    if waitCollected(lambda: findGoldCollected(region)):
+    if waitFor(lambda: findGoldCollected(region)):
         logging.debug("Bot has collected gold something from a building.")
         return True
     else:
@@ -246,14 +236,23 @@ def waitGoldCollected(left, top):
 
 def waitSuppliesCollected(left, top):
     region = [left - 20, top - 70, 70, 80]
-    if waitCollected(lambda: findSuppliesCollected(region)):
+    if waitFor(lambda: findSuppliesCollected(region)):
         logging.debug("Bot has collected supplies something from a building.")
         return True
     else:
         return False
 
 
-def waitCollected(findPicFunc):
+def waitIdleOpened(left, top):  # todo
+    region = [left - 20, top - 70, 70, 80]
+    if waitFor(lambda: findSuppliesCollected(region)):
+        logging.debug("Bot has collected supplies something from a building.")
+        return True
+    else:
+        return False
+
+
+def waitFor(findPicFunc):
     try:
         wait(lambda: findPicFunc() is not None, timeout_seconds=0.5, sleep_seconds=0)
 
@@ -274,19 +273,19 @@ def processSupplies():  # supplies icons
     output = findSupplies()
     if output is not None:
         logging.info("Found supplies %s", output)
-        lockControl()
-        # get coordinates to click from output
-        pressCollect1(output)
-        if waitSuppliesCollected(output.left, output.top + ydiff1):
-            return
+        with lock:
+            checkIfPaused()
+            # get coordinates to click from output
+            pressCollect1(output)
+            if waitSuppliesCollected(output.left, output.top + ydiff1):
+                return
 
-        pressEsc()
-        pressCollect2(output)
-        if waitSuppliesCollected(output.left, output.top + ydiff1 + ydiff2):
-            return
+            pressEsc()
+            pressCollect2(output)
+            if waitSuppliesCollected(output.left, output.top + ydiff1 + ydiff2):
+                return
 
-        pressEsc()
-        unlockControl()
+            pressEsc()
     else:
         randSleepSec(3, 7)
 
@@ -391,18 +390,18 @@ def zoomOut():
     if panel is None:
         randSleepSec(5, 10)
         return
-    lockControl()
-    logging.info("Zooming out")
-    pyautogui.moveTo(panel[0], panel[1], duration=randDur())
-    pyautogui.moveRel(50, -50, duration=randDur())
-    pyautogui.click()
-    randSleepMs()
-    scroll(-1, 1)
-    randSleepMs()
-    scroll(-1, 1)
-    randSleepSec(60, 120)
-    logging.info("Zoomed out")
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        logging.info("Zooming out")
+        pyautogui.moveTo(panel[0], panel[1], duration=randDur())
+        pyautogui.moveRel(50, -50, duration=randDur())
+        pyautogui.click()
+        randSleepMs()
+        scroll(-1, 1)
+        randSleepMs()
+        scroll(-1, 1)
+        randSleepSec(60, 120)
+        logging.info("Zoomed out")
 
 
 def processGuild():
@@ -412,42 +411,40 @@ def processGuild():
         return
     else:
         pressEsc()
-    lockControl()
-    x = guild.left
-    y = guild.top + guild.height + 1
-    leftRegion = (x + 3, y, 8, 7)
-    rightRegion = (x + guild.width / 2 + 2, y, 8, 7)
-    leftScreen = pyautogui.screenshot(region=leftRegion)
-    rightScreen = pyautogui.screenshot(region=rightRegion)
-    found = pyautogui.locate(leftScreen, rightScreen, confidence=0.8)
-    unlockControl()
-    if found:
-        lockControl()
-        logging.info("Found full guild")
-        pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1,
-                         duration=randDur())
-        pyautogui.click()
-        guildGet = findPic('guildGet')
-        tries = 10
-        while guildGet is None and tries > 0:
-            tries = tries - 1
-            randSleepSec(1, 3)
+    with lock:
+        checkIfPaused()
+        x = guild.left
+        y = guild.top + guild.height + 1
+        leftRegion = (x + 3, y, 8, 7)
+        rightRegion = (x + guild.width / 2 + 2, y, 8, 7)
+        leftScreen = pyautogui.screenshot(region=leftRegion)
+        rightScreen = pyautogui.screenshot(region=rightRegion)
+        found = pyautogui.locate(leftScreen, rightScreen, confidence=0.8)
+        if found:
+            logging.info("Found full guild")
+            pyautogui.moveTo(guild.left, guild.top + guild.height + ydiff1,
+                             duration=randDur())
+            pyautogui.click()
             guildGet = findPic('guildGet')
-        pressButton(guildGet, False)
-        unlockControl()
-    else:
-        logging.debug("Guild is not full")
-        pressEsc()
+            tries = 10
+            while guildGet is None and tries > 0:
+                tries = tries - 1
+                randSleepSec(1, 3)
+                guildGet = findPic('guildGet')
+            pressButton(guildGet, False)
+        else:
+            logging.debug("Guild is not full")
+            pressEsc()
     randSleepSec(60, 180)
 
 
 def reboot():
-    lockControl()
-    activateWindow()
-    pyautogui.press('f5')
-    GameState.rebooted()
-    sleep(1)
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        activateWindow()
+        pyautogui.press('f5')
+        GameState.rebooted()
+        sleep(1)
 
 
 def activateWindow():
@@ -492,34 +489,31 @@ currentDesktop = 1
 
 def leftDesktop():
     global currentDesktop
-    lockControl()
-    currentDesktop = currentDesktop - 1
-    pyautogui.hotkey('ctrl', 'win', 'left')
-    randSleepMs(500, 500)
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        currentDesktop = currentDesktop - 1
+        pyautogui.hotkey('ctrl', 'win', 'left')
+        randSleepMs(500, 500)
 
 
 def rightDesktop():
     global currentDesktop
-    lockControl()
-    currentDesktop = currentDesktop + 1
-    pyautogui.hotkey('ctrl', 'win', 'right')
-    randSleepMs(500, 500)
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        currentDesktop = currentDesktop + 1
+        pyautogui.hotkey('ctrl', 'win', 'right')
+        randSleepMs(500, 500)
 
 
 def moveToFirstDesktop():
     global currentDesktop
-    lockControl()
-    for i in range(0, numberOfDesktops - 1):
-        leftDesktop()
-    rightDesktop()
-    currentDesktop = 1
-    unlockControl()
+    with lock:
+        checkIfPaused()
+        for i in range(0, numberOfDesktops - 1):
+            leftDesktop()
+        rightDesktop()
+        currentDesktop = 1
 
-
-if doSwitchScreens:
-    moveToFirstDesktop()
 
 start = time.time()
 
@@ -527,21 +521,24 @@ start = time.time()
 def switchScreens():
     global start
     if time.time() - start > minimumTimeOnDesktop:
-        lockControl()
-        start = time.time()
-        initSocialProcesses()
-        if currentDesktop == numberOfDesktops - 1:
-            moveToFirstDesktop()
-        else:
-            rightDesktop()
-        unlockControl()
+        with lock:
+            checkIfPaused()
+            start = time.time()
+            initSocialProcesses()
+            if currentDesktop == numberOfDesktops - 1:
+                moveToFirstDesktop()
+            else:
+                rightDesktop()
 
 
 def startBot(botFunction, toggle):
     if toggle:
         botName = botFunction.__name__
         logging.info("Starting bot " + botName)
-        threading.Thread(name=botName, target=safeInfiniteLoopFactory(botFunction)).start()
+        thread = threading.Thread(name=botName, target=safeInfiniteLoop, args=(botFunction,))
+        thread.setDaemon(True)
+        thread.start()
+        return thread
 
 
 def rebooter():
@@ -589,16 +586,26 @@ def safeInfiniteLoop(func):
             logging.error(e)
 
 
-startBot(goldCollector, collectGold)
-startBot(processSupplies, collectSupplies)
-startBot(processIdleBuildings, restartIdleBuildings)
-startBot(processGoods, collectGoods)
-startBot(processSocial, collectSocial)
-startBot(processArmy, collectArmy)
-startBot(zoomOut, doZoomOut)
-startBot(processGuild, collectGuild)
-startBot(unstuck, doUnstuck)
-startBot(switchScreens, doSwitchScreens)
-startBot(rebooter, rebootSomeTime)
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
+    if doSwitchScreens:
+        moveToFirstDesktop()
 
-startBot(lootCollector, doCollectLoot)
+    startBot(goldCollector, collectGold)
+    startBot(processSupplies, collectSupplies)
+    startBot(processIdleBuildings, restartIdleBuildings)
+    startBot(processGoods, collectGoods)
+    startBot(processSocial, collectSocial)
+    startBot(processArmy, collectArmy)
+    startBot(zoomOut, doZoomOut)
+    startBot(processGuild, collectGuild)
+    startBot(unstuck, doUnstuck)
+    startBot(switchScreens, doSwitchScreens)
+    startBot(rebooter, rebootSomeTime)
+    startBot(lootCollector, doCollectLoot)
+    while not kb.is_pressed('end'):
+        sleep(1)
+
+    logging.info("Bye!")
