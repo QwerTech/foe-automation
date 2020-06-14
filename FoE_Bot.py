@@ -30,12 +30,12 @@ collectSocial = True  # automatically aid other people and accept friend request
 doZoomOut = True  # automatically zoom out
 collectGuild = True  # collect guild if full
 doUnstuck = True  # reboot if session expired
-doSwitchScreens = False  # switch virtual screens to another accounts
+doSwitchScreens = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot = True  # collect in-game loot
 
 numberOfDesktops = 5  # number of virtual desktop screens
-minimumTimeOnDesktop = 60  # minimum amount of time to spend on one desktop, sec
+minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
 ydiff1 = 60
@@ -529,6 +529,7 @@ def switchScreens():
                 moveToFirstDesktop()
             else:
                 rightDesktop()
+    randSleepSec(30, 60)
 
 
 def startBot(botFunction, toggle):
