@@ -1,19 +1,47 @@
+import glob
 import unittest
 
+import cv2
 from PIL import Image
+from pyscreeze import LOAD_GRAYSCALE
 
 from foe_images import *
 from foe_pics import *
+from foe_pool import *
 
 root = 'testresources/'
 
 
+def f(x):
+    return x * x
+
+
+def findPic(o):
+    return pyautogui.locate(o.picture, o.screenshot, confidence=0.8, grayscale=True)
+
+
+class Task():
+
+    def __init__(self, picture, screenshot):
+        self.picture = picture
+        self.screenshot = screenshot
+
+
 class MyTestCase(unittest.TestCase):
-
     def test_something(self):
-        find_next = findNext()
-        print(find_next)
 
+        pics = []
+        screenshot = pyautogui.screenshot()
+        for file in glob.glob("resources/loot/*.png"):
+            file = cv2.imread(file, LOAD_GRAYSCALE)
+            # pics.append(file)
+            o = Task(file, screenshot)
+            pics.append(o)
+        initPool()
+        for i in range(0, 10):
+            print(execInPool(findPic, pics))
+
+    @unittest.skip
     def test_image_compare(self):
         initial = Image.open(root + 'friends1.png')
         second = Image.open(root + 'friends2.png')

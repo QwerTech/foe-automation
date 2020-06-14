@@ -20,6 +20,8 @@ from win32con import VK_SCROLL
 
 from foe_images import *
 from foe_pics import *
+from foe_pics import findRewardReceived
+from foe_pool import execInPool, initPool
 
 collectGold = True  # collect gold from buildings.
 collectArmy = True  # collect gold from buildings.
@@ -32,7 +34,7 @@ collectGuild = True  # collect guild if full
 doUnstuck = True  # reboot if session expired
 doSwitchScreens = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
-doCollectLoot = True  # collect in-game loot
+doCollectLoot2 = True  # collect in-game loot
 
 numberOfDesktops = 5  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
@@ -252,10 +254,9 @@ def waitIdleOpened(left, top):  # todo
         return False
 
 
-def waitFor(findPicFunc):
+def waitFor(findPicFunc, timeout_seconds=0.5, sleep_seconds=0):
     try:
-        wait(lambda: findPicFunc() is not None, timeout_seconds=0.5, sleep_seconds=0)
-
+        wait(lambda: findPicFunc() is not None, timeout_seconds=timeout_seconds, sleep_seconds=sleep_seconds)
         return True
     except TimeoutExpired:
         return False
@@ -547,29 +548,69 @@ def rebooter():
     reboot()
 
 
-def lootCollector():
+def collectLoot():
     loot = findLoot()
-    if loot is None:
-        randSleepSec(300, 600)
-        # randSleepMs()
-        return
-    pressButton(loot, False)
-    try:
-        wait(lambda: findPic("rewardReceived") is not None, timeout_seconds=10, sleep_seconds=0.5)
-    except TimeoutExpired:
-        pass
-    pressEsc()
+    while loot is not None:
+        if loot is None:
+            return
+        pressButton(loot, False)
+        waitFor(findRewardReceived, 10)
+        pressEsc()
+        loot = findLoot()
+
+
+def lootCollector2():
+    with lock:
+        moveTo(lambda: right() or up(), findUpRightCorner)
+        collectLoot()
+        moveTo(lambda: right() or down(), findDownRightCorner)
+        collectLoot()
+        moveTo(lambda: left() or down(), findDownLeftCorner)
+        collectLoot()
+        moveTo(lambda: left() or up(), findUpLeftCorner)
+        collectLoot()
+        moveTo(lambda: right(), findCoastOnTheRight)
+    randSleepSec(90, 180)
+
+
+def moveTo(move, findFunc):
+    maxIterations = 26
+    while findFunc() is None and maxIterations > 0:
+        checkIfPaused()
+        move()
+        maxIterations = maxIterations - 1
+
+
+def left(): pressDelayed('left')
+
+
+def down(): pressDelayed('down')
+
+
+def up(): pressDelayed('up')
+
+
+def right(): pressDelayed('right')
+
+
+def pressDelayed(key: str, delay=0.1):
+    pyautogui.keyDown(key)
+    sleep(delay)
+    pyautogui.keyUp(key)
 
 
 def findLoot():
-    # for i in range(0, 10):
-    randSleepSec()
+    pics = []
     for file in glob.glob("resources/loot/*.png"):
         name = Path(file).stem
-        pic = findPic(f"loot/{name}")
-        if pic is not None:
-            return pic
-        randSleepMs()
+        pic = f"loot/{name}"
+        pics.append(pic)
+    for i in range(0, 3):
+        found = execInPool(findPic, pics)
+        found = [pic for pic in found if pic is not None]
+        if found:
+            return found[0]
+        randSleepSec()
 
 
 def safeInfiniteLoopFactory(func):
@@ -605,7 +646,8 @@ if __name__ == "__main__":
     startBot(unstuck, doUnstuck)
     startBot(switchScreens, doSwitchScreens)
     startBot(rebooter, rebootSomeTime)
-    startBot(lootCollector, doCollectLoot)
+    initPool()
+    startBot(lootCollector2, doCollectLoot2)
     while not kb.is_pressed('end'):
         sleep(1)
 

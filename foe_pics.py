@@ -82,6 +82,21 @@ def findLandscape(): return findPic('landscape', 0.9)
 def findGuild(): return findPic('guild')
 
 
+def findUpLeftCorner(): return findPic('upLeftCorner')
+
+
+def findCoastOnTheRight(): return findPic('coastOnTheRight')
+
+
+def findUpRightCorner(): return findPic('rightUp')
+
+
+def findDownLeftCorner(): return findPic('downLeft')
+
+
+def findDownRightCorner(): return findPic('downRight')
+
+
 def findPic(picture, confidence=0.800, region=None):
     if region is None:
         button = pyautogui.locateOnScreen("resources/" + picture + ".png", confidence=confidence, grayscale=True)
@@ -95,3 +110,7 @@ def findPic(picture, confidence=0.800, region=None):
 
 def findNext():
     return findPic('next')
+
+
+def findRewardReceived():
+    return findPic("rewardReceived")
