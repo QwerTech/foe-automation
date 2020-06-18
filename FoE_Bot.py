@@ -141,6 +141,7 @@ def processIdleOutput(output):
 
 def checkIfPaused():
     while kb.is_pressed("ctrl") or GetKeyState(VK_SCROLL) == 1:
+        logging.warning("PAUSED")
         sleep(1)
 
 
@@ -575,6 +576,7 @@ def lootCollector2():
 
 def moveTo(move, findFunc):
     maxIterations = 26
+
     while findFunc() is None and maxIterations > 0:
         checkIfPaused()
         move()
