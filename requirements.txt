@@ -4,5 +4,10 @@ opencv-python==4.2.0.34
 #for image recognition and control over mouse and keyboard
 PyAutoGUI==0.9.50
 
-pywin32~=227
-keyboard~=0.13.5
+pywin32==228
+keyboard==0.13.5
+Pillow==7.1.2
+PyScreeze==0.1.26
+waiting==1.4.1
+PyGetWindow==0.0.8
+comtypes==1.1.7

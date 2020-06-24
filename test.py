@@ -1,13 +1,10 @@
-import glob
+import itertools
 import unittest
 
-import cv2
 from PIL import Image
-from pyscreeze import LOAD_GRAYSCALE
 
 from foe_images import *
 from foe_pics import *
-from foe_pool import *
 
 root = 'testresources/'
 
@@ -28,18 +25,10 @@ class Task():
 
 
 class MyTestCase(unittest.TestCase):
-    def test_something(self):
 
-        pics = []
-        screenshot = pyautogui.screenshot()
-        for file in glob.glob("resources/loot/*.png"):
-            file = cv2.imread(file, LOAD_GRAYSCALE)
-            # pics.append(file)
-            o = Task(file, screenshot)
-            pics.append(o)
-        initPool()
-        for i in range(0, 10):
-            print(execInPool(findPic, pics))
+    def test_something(self):
+        cycle = itertools.cycle([1, 2, 3, 4])
+        print(cycle)
 
     @unittest.skip
     def test_image_compare(self):

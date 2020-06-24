@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import glob
+import itertools
 import random
 import threading
 import time
@@ -18,6 +19,7 @@ from waiting import wait, TimeoutExpired
 from win32api import GetKeyState
 from win32con import VK_SCROLL
 
+import foe_desktops
 from foe_images import *
 from foe_pics import *
 from foe_pics import findRewardReceived
@@ -32,11 +34,10 @@ collectSocial = True  # automatically aid other people and accept friend request
 doZoomOut = True  # automatically zoom out
 collectGuild = True  # collect guild if full
 doUnstuck = True  # reboot if session expired
-doSwitchScreens = True  # switch virtual screens to another accounts
+doSwitchBots = True  # switch virtual screens to another accounts
 rebootSomeTime = True  # reboot game some times
 doCollectLoot2 = True  # collect in-game loot
 
-numberOfDesktops = 5  # number of virtual desktop screens
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
 # One might need to change these based on screen resolution
@@ -77,7 +78,7 @@ class GameState:
 
 
 def initGamesState():
-    for i in range(1, numberOfDesktops):
+    for i in range(1, foe_desktops.numberOfDesktops):
         GameState.games.append(GameState())
 
 
@@ -257,7 +258,8 @@ def waitIdleOpened(left, top):  # todo
 
 def waitFor(findPicFunc, timeout_seconds=0.5, sleep_seconds=0):
     try:
-        wait(lambda: findPicFunc() is not None, timeout_seconds=timeout_seconds, sleep_seconds=sleep_seconds)
+        wait(lambda: findPicFunc() is not None, timeout_seconds=timeout_seconds,
+             sleep_seconds=sleep_seconds)
         return True
     except TimeoutExpired:
         return False
@@ -490,55 +492,40 @@ currentDesktop = 1
 
 
 def leftDesktop():
-    global currentDesktop
     with lock:
         checkIfPaused()
-        currentDesktop = currentDesktop - 1
-        pyautogui.hotkey('ctrl', 'win', 'left')
-        randSleepMs(500, 500)
+        foe_desktops.leftDesktop()
 
 
 def rightDesktop():
-    global currentDesktop
     with lock:
         checkIfPaused()
-        currentDesktop = currentDesktop + 1
-        pyautogui.hotkey('ctrl', 'win', 'right')
-        randSleepMs(500, 500)
+        foe_desktops.rightDesktop()
 
 
 def moveToFirstDesktop():
-    global currentDesktop
     with lock:
         checkIfPaused()
-        for i in range(0, numberOfDesktops - 1):
-            leftDesktop()
-        rightDesktop()
-        currentDesktop = 1
+        foe_desktops.moveToFirstDesktop()
 
 
-start = time.time()
-
-
-def switchScreens():
-    global start
-    if time.time() - start > minimumTimeOnDesktop:
-        with lock:
-            checkIfPaused()
-            start = time.time()
-            initSocialProcesses()
-            if currentDesktop == numberOfDesktops - 1:
-                moveToFirstDesktop()
-            else:
-                rightDesktop()
-    randSleepSec(30, 60)
+def switchBots():
+    windows = foe_desktops.getGameWindows()
+    foe_desktops.hideAll()
+    for window in itertools.cycle(windows):
+        checkIfPaused()
+        foe_desktops.show(window)
+        initSocialProcesses()
+        sleep(minimumTimeOnDesktop)
+        foe_desktops.hide(window)
 
 
 def startBot(botFunction, toggle):
     if toggle:
         botName = botFunction.__name__
         logging.info("Starting bot " + botName)
-        thread = threading.Thread(name=botName, target=safeInfiniteLoop, args=(botFunction,))
+        thread = threading.Thread(name=botName, target=safeInfiniteLoop,
+                                  args=(botFunction,))
         thread.setDaemon(True)
         thread.start()
         return thread
@@ -634,7 +621,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
-    if doSwitchScreens:
+    if doSwitchBots:
         moveToFirstDesktop()
 
     startBot(goldCollector, collectGold)
@@ -646,7 +633,7 @@ if __name__ == "__main__":
     startBot(zoomOut, doZoomOut)
     startBot(processGuild, collectGuild)
     startBot(unstuck, doUnstuck)
-    startBot(switchScreens, doSwitchScreens)
+    startBot(switchBots, doSwitchBots)
     startBot(rebooter, rebootSomeTime)
     initPool()
     startBot(lootCollector2, doCollectLoot2)
