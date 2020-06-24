@@ -513,11 +513,13 @@ def switchBots():
     windows = foe_desktops.getGameWindows()
     foe_desktops.hideAll()
     for window in itertools.cycle(windows):
-        checkIfPaused()
-        foe_desktops.show(window)
-        initSocialProcesses()
+        with lock:
+            checkIfPaused()
+            foe_desktops.show(window)
+            initSocialProcesses()
         sleep(minimumTimeOnDesktop)
-        foe_desktops.hide(window)
+        with lock:
+            foe_desktops.hide(window)
 
 
 def startBot(botFunction, toggle):
