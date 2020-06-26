@@ -2,28 +2,30 @@ from __future__ import annotations
 
 import glob
 import itertools
-import random
 import threading
-import time
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
-from random import randint
 from time import sleep
 
 import keyboard as kb
-import win32api
-import win32con
 # functions to be run, you can change these!
-from waiting import wait, TimeoutExpired
-from win32api import GetKeyState
-from win32con import VK_SCROLL
+from waiting import wait
 
 import foe_desktops
-from foe_images import *
+from foe_bot_army import processArmy
+from foe_bot_gold import goldCollector
+from foe_bot_goods import processGoods
+from foe_bot_idle import processIdleBuildings
+from foe_bot_social import initSocialProcesses, processSocial
+from foe_bot_zoom import zoomOut
+from foe_control import pressCollect1, pressCollect2, ydiff1, ydiff2, pressEsc, \
+    pressButton
 from foe_pics import *
 from foe_pics import findRewardReceived
 from foe_pool import execInPool, initPool
+from foe_utils import waitFor, randDur, checkIfPaused, \
+    randSleepSec, lock
 
 collectGold = True  # collect gold from buildings.
 collectArmy = True  # collect gold from buildings.
@@ -40,13 +42,8 @@ doCollectLoot2 = True  # collect in-game loot
 
 minimumTimeOnDesktop = 120  # minimum amount of time to spend on one desktop, sec
 
-# One might need to change these based on screen resolution
-ydiff1 = 60
-ydiff2 = -25
-
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
-lock = threading.RLock()
 
 
 class GameState:
@@ -85,159 +82,6 @@ def initGamesState():
 initGamesState()
 
 
-def processOutput(output):
-    with lock:
-        checkIfPaused()
-        # get coordinates to click from output
-        pressCollect1(output)
-        pressEsc()
-        pressCollect2(output)
-        logging.debug("Bot has collected something from a building.")
-        pressEsc()
-
-
-def pressCollect1(output):
-    # goto coordinates and click there
-    moveAndClick(output.left, output.top + ydiff1)
-
-
-def pressCollect2(output):
-    # goto coordinates and click there
-    moveAndClick(output.left, output.top + ydiff1 + ydiff2)
-
-
-def moveAndClick(left, top):
-    with lock:
-        checkIfPaused()
-        pyautogui.moveTo(left, top, duration=randDur())
-        pyautogui.click()
-
-
-def randSleepMs(fromMs=220, toMs=550):
-    checkIfPaused()
-    sleep(randint(fromMs, toMs) / 1000)
-
-
-def randSleepSec(fromSec=1, toSec=3):
-    checkIfPaused()
-    secs = randint(fromSec, toSec)
-    logging.debug("Sleeping for %s secs.", secs)
-    sleep(secs)
-
-
-def randDur(): return randint(150, 750) / 1000
-
-
-def processIdleOutput(output):
-    with lock:
-        pressCollect1(output)
-        randSleepMs()
-        pyautogui.typewrite(['1', '2', '3', '4', '5'])
-        pressCollect2(output)
-        randSleepMs()
-        pyautogui.typewrite(['1', '2', '3', '4', '5'])
-        logging.debug("Bot has restarted a production building.")
-        pressEsc()
-
-
-def checkIfPaused():
-    while kb.is_pressed("ctrl") or GetKeyState(VK_SCROLL) == 1:
-        logging.warning("PAUSED")
-        sleep(1)
-
-
-def pressButton(output, suppressESC):
-    if output is None:
-        logging.warning("There is no button")
-        return
-    with lock:
-        checkIfPaused()
-        # get coordinates to click from output
-        xcoord, ycoord, xcoord2, ycoord2 = output
-        # goto coordinates and click there
-        pyautogui.moveTo(randint(xcoord + 1, xcoord + xcoord2 - 1),
-                         randint(ycoord + 1, ycoord + ycoord2 - 1),
-                         duration=randDur())
-        # sleep(randint(12, 25) / 100)
-        pyautogui.click()
-        logging.debug("Bot has clicked a button.")
-        if not suppressESC:
-            pressEsc()
-
-
-def scroll(clicks=0, delta_x=0, delta_y=0, delay_between_ticks=0):
-    """
-    Source: https://docs.microsoft.com/en-gb/windows/win32/api/winuser/nf-winuser-mouse_event?redirectedfrom=MSDN
-
-    void mouse_event(
-      DWORD     dwFlags,
-      DWORD     dx,
-      DWORD     dy,
-      DWORD     dwData,
-      ULONG_PTR dwExtraInfo
-    );
-
-    If dwFlags contains MOUSEEVENTF_WHEEL,
-    then dwData specifies the amount of wheel movement.
-    A positive value indicates that the wheel was rotated forward, away from the user;
-    A negative value indicates that the wheel was rotated backward, toward the user.
-    One wheel click is defined as WHEEL_DELTA, which is 120.
-
-    :param delay_between_ticks:
-    :param delta_y:
-    :param delta_x:
-    :param clicks:
-    :return:
-    """
-
-    if clicks > 0:
-        increment = win32con.WHEEL_DELTA
-    else:
-        increment = win32con.WHEEL_DELTA * -1
-
-    for _ in range(abs(clicks)):
-        win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, delta_x, delta_y,
-                             increment, 0)
-        time.sleep(delay_between_ticks)
-
-
-def pressEsc():
-    checkIfPaused()
-    randSleepMs()
-    pyautogui.typewrite(['esc'])
-
-
-def goldCollector():  # gold icons
-    output = findGold()
-
-    if output is not None:
-        logging.info("Found gold %s", output)
-        with lock:
-            checkIfPaused()
-            # get coordinates to click from output
-            pressCollect1(output)
-            if waitGoldCollected(output.left, output.top + ydiff1):
-                return
-
-            pressEsc()
-            pressCollect2(output)
-            if waitGoldCollected(output.left, output.top + ydiff1 + ydiff2):
-                return
-
-            pressEsc()
-    else:
-        randSleepSec(5, 15)
-
-
-def waitGoldCollected(left, top):
-    region = [left - 10, top - 70, 50, 80]
-    if waitFor(lambda: findGoldCollected(region)):
-        logging.debug("Bot has collected gold something from a building.")
-        return True
-    else:
-        return False
-
-
 def waitSuppliesCollected(left, top):
     region = [left - 20, top - 70, 70, 80]
     if waitFor(lambda: findSuppliesCollected(region)):
@@ -254,23 +98,6 @@ def waitIdleOpened(left, top):  # todo
         return True
     else:
         return False
-
-
-def waitFor(findPicFunc, timeout_seconds=0.5, sleep_seconds=0):
-    try:
-        wait(lambda: findPicFunc() is not None, timeout_seconds=timeout_seconds,
-             sleep_seconds=sleep_seconds)
-        return True
-    except TimeoutExpired:
-        return False
-
-
-def processArmy():
-    output = findArmy()
-    if output is not None:
-        logging.info("Found army %s", output)
-        processOutput(output)
-    randSleepSec(5, 10)
 
 
 def processSupplies():  # supplies icons
@@ -294,118 +121,13 @@ def processSupplies():  # supplies icons
         randSleepSec(3, 7)
 
 
-def processIdleBuildings():  # idle building icons
-    output = findIdle()
-    if output is not None:
-        logging.info("Found idle %s", output)
-        processIdleOutput(output)
-    else:
-        randSleepSec(3, 7)
-
-
-def processGoods():  # goods boxes icons
-    output = findGoods()
-    if output is not None:
-        logging.info("Found good %s", output)
-        processIdleOutput(output)
-    else:
-        randSleepSec(3, 7)
-
-
 socialProcesses = []
-
-
-def processSocial():
-    global socialProcesses
-    initSocialProcesses()
-    random.shuffle(socialProcesses)
-    while socialProcesses:
-        process = socialProcesses.pop()
-        process()
-    randSleepSec(300, 600)
-
-
-def initSocialProcesses():
-    global socialProcesses
-    socialProcesses = [processFriends, processNeighbours, processSoguildians]
-    # socialProcesses = [processSoguildians]
-
-
-def processSoguildians():
-    logging.info("Precessing soguildians")
-    pressButton(findSoguildians(), True)
-    processAllSocialPages()
-
-
-def processNeighbours():
-    logging.info("Precessing neighbours")
-    pressButton(findNeighbours(), True)
-    processAllSocialPages()
-
-
-def processFriends():
-    logging.info("Precessing friends")
-    pressButton(findFriends(), True)
-    processAllSocialPages()
-
-
-def processAllSocialPages():
-    pages = 16
-    # pages = 3
-    lastPage = False
-    pressButton(findFullFf(), True)
-    while pages >= 0 and not lastPage:
-        pages = pages - 1
-        processSocialPage()
-        lastPage = nextPage()
-
-
-def nextPage():
-    nextBtn = findNext()
-    friendsRegion = [nextBtn.left - 640, nextBtn.top - 50, 530, 80]
-    before = pyautogui.screenshot(region=friendsRegion)
-    pressButton(nextBtn, True)
-    randSleepMs()
-    after = pyautogui.screenshot(region=friendsRegion)
-    return same(before, after)
-
-
-def processSocialPage():
-    output = True
-    while output is not None:
-        output = findAnySocialButton()
-        if output is not None:
-            logging.info("Precessing social button")
-            pressButton(output, True)
-            randSleepMs(500, 900)
 
 
 def isThereSomethingToCollect():
     result = findToCollect() is not None
     logging.debug("isThereSomethingToCollect: %s", result)
     return result
-
-
-def zoomOut():
-    if findLandscape() is not None:
-        randSleepSec(60, 120)
-        return
-    panel = findButtonsPanel()
-    if panel is None:
-        randSleepSec(5, 10)
-        return
-    with lock:
-        checkIfPaused()
-        logging.info("Zooming out")
-        pyautogui.moveTo(panel[0], panel[1], duration=randDur())
-        pyautogui.moveRel(50, -50, duration=randDur())
-        pyautogui.click()
-        randSleepMs()
-        scroll(-1, 1)
-        randSleepMs()
-        scroll(-1, 1)
-        randSleepSec(60, 120)
-        logging.info("Zoomed out")
 
 
 def processGuild():
