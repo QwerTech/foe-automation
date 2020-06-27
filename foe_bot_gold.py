@@ -1,11 +1,16 @@
 import logging
 
+from foe_common import isThereSomethingToCollect
 from foe_control import pressCollect1, ydiff1, ydiff2, pressCollect2, pressEsc
 from foe_pics import findGold, findGoldCollected
 from foe_utils import lock, checkIfPaused, waitFor, randSleepSec
 
 
 def goldCollector():  # gold icons
+    if not isThereSomethingToCollect():
+        randSleepSec(5, 15)
+        return
+
     output = findGold()
 
     if output is not None:

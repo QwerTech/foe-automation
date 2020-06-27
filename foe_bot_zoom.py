@@ -25,5 +25,6 @@ def zoomOut():
         scroll(-1, 1)
         randSleepMs()
         scroll(-1, 1)
-        randSleepSec(60, 120)
+        randSleepMs()
         logging.info("Zoomed out")
+    randSleepSec(60, 120)

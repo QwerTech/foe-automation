@@ -3,30 +3,50 @@ from time import sleep
 import pyautogui
 import pygetwindow as gw
 
+from foe_utils import lock, checkIfPaused
+
 currentDesktop = 1
 numberOfDesktops = 2  # number of virtual desktop screens
 
 
-def leftDesktop():
+def _leftDesktop():
     global currentDesktop
     currentDesktop = currentDesktop - 1
     pyautogui.hotkey('ctrl', 'win', 'left')
     sleep(0.5)
 
 
-def rightDesktop():
+def _rightDesktop():
     global currentDesktop
     currentDesktop = currentDesktop + 1
     pyautogui.hotkey('ctrl', 'win', 'right')
     sleep(0.5)
 
 
-def moveToFirstDesktop():
+def _moveToFirstDesktop():
     global currentDesktop
     for i in range(0, numberOfDesktops - 1):
         leftDesktop()
     rightDesktop()
     currentDesktop = 1
+
+
+def leftDesktop():
+    with lock:
+        checkIfPaused()
+        _leftDesktop()
+
+
+def rightDesktop():
+    with lock:
+        checkIfPaused()
+        _rightDesktop()
+
+
+def moveToFirstDesktop():
+    with lock:
+        checkIfPaused()
+        _moveToFirstDesktop()
 
 
 def trySkip(func):

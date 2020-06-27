@@ -1,11 +1,16 @@
 import logging
 
+from foe_common import isThereSomethingToCollect
 from foe_control import pressCollect1, ydiff1, pressEsc, pressCollect2, ydiff2
 from foe_pics import findSupplies, findSuppliesCollected
 from foe_utils import lock, checkIfPaused, randSleepSec, waitFor
 
 
 def processSupplies():  # supplies icons
+    if not isThereSomethingToCollect():
+        randSleepSec(3, 7)
+        return
+
     output = findSupplies()
     if output is not None:
         logging.info("Found supplies %s", output)

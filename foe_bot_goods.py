@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from foe_common import isThereSomethingToCollect
 from foe_control import pressCollect1, pressCollect2, pressEsc
 from foe_pics import *
 from foe_utils import randSleepSec, lock, randSleepMs
@@ -9,6 +10,10 @@ from foe_utils import randSleepSec, lock, randSleepMs
 
 
 def processGoods():  # goods boxes icons
+    if not isThereSomethingToCollect():
+        randSleepSec(5, 15)
+        return
+
     output = findGoods()
     if output is not None:
         logging.info("Found good %s", output)

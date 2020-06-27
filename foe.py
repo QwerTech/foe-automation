@@ -81,12 +81,6 @@ initGamesState()
 socialProcesses = []
 
 
-def isThereSomethingToCollect():
-    result = findToCollect() is not None
-    logging.debug("isThereSomethingToCollect: %s", result)
-    return result
-
-
 def processGuild():
     guild = findGuild()
     if guild is None:
@@ -170,24 +164,6 @@ def unstuck():
 currentDesktop = 1
 
 
-def leftDesktop():
-    with lock:
-        checkIfPaused()
-        foe_desktops.leftDesktop()
-
-
-def rightDesktop():
-    with lock:
-        checkIfPaused()
-        foe_desktops.rightDesktop()
-
-
-def moveToFirstDesktop():
-    with lock:
-        checkIfPaused()
-        foe_desktops.moveToFirstDesktop()
-
-
 def switchSlave():
     windows = foe_desktops.getGameWindows()
     foe_desktops.hideAll()
@@ -202,14 +178,16 @@ def switchSlave():
 
 
 def startBot(botFunction, toggle):
-    if toggle:
-        botName = botFunction.__name__
-        logging.info("Starting bot " + botName)
-        thread = threading.Thread(name=botName, target=safeInfiniteLoop,
-                                  args=(botFunction,))
-        thread.setDaemon(True)
-        thread.start()
-        return thread
+    if not toggle:
+        return
+
+    botName = botFunction.__name__
+    logging.info("Starting bot " + botName)
+    thread = threading.Thread(name=botName, target=safeInfiniteLoop,
+                              args=(botFunction,))
+    thread.setDaemon(True)
+    thread.start()
+    return thread
 
 
 def rebooter():
@@ -237,7 +215,7 @@ if __name__ == "__main__":
                         format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
     if doSwitchBots:
-        moveToFirstDesktop()
+        foe_desktops.moveToFirstDesktop()
 
     startBot(goldCollector, collectGold)
     startBot(processSupplies, collectSupplies)

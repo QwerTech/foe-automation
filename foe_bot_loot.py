@@ -20,6 +20,7 @@ def collectLoot():
 
 
 def lootCollector2():
+    randSleepSec(90, 180)
     with lock:
         moveTo(lambda: right() or up(), findUpRightCorner)
         collectLoot()
@@ -30,7 +31,6 @@ def lootCollector2():
         moveTo(lambda: left() or up(), findUpLeftCorner)
         collectLoot()
         moveTo(lambda: right(), findCoastOnTheRight)
-    randSleepSec(90, 180)
 
 
 def moveTo(move, findFunc):

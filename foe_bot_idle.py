@@ -2,6 +2,7 @@ import logging
 
 import pyautogui
 
+from foe_common import isThereSomethingSleeps
 from foe_control import pressCollect1, pressCollect2, pressEsc
 from foe_pics import findIdle, findSuppliesCollected
 from foe_utils import lock, randSleepMs, randSleepSec, waitFor
@@ -20,6 +21,10 @@ def processIdleOutput(output):
 
 
 def processIdleBuildings():  # idle building icons
+    if not isThereSomethingSleeps():
+        randSleepSec(3, 7)
+        return
+
     output = findIdle()
     if output is not None:
         logging.info("Found idle %s", output)

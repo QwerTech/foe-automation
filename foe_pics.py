@@ -58,6 +58,9 @@ def findAccept(): return findPic('accept')
 def findToCollect(): return findPic('toCollect', 0.95)
 
 
+def findSomethingSleeps(): return findPic('somethingSleeps', 0.95)
+
+
 def findFriends(): return findPic('friends', 0.9) \
                           or findPic('friendsActive', 0.9)
 

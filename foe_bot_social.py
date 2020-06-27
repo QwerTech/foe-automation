@@ -1,8 +1,9 @@
 import logging
-from random import random
+import random
 
 import pyautogui
 
+from foe_control import pressButton
 from foe_images import same
 from foe_pics import findSoguildians, findNeighbours, findFriends, findFullFf, \
     findNext, findAnySocialButton
