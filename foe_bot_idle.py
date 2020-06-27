@@ -3,8 +3,8 @@ import logging
 import pyautogui
 
 from foe_control import pressCollect1, pressCollect2, pressEsc
-from foe_pics import findIdle
-from foe_utils import lock, randSleepMs, randSleepSec
+from foe_pics import findIdle, findSuppliesCollected
+from foe_utils import lock, randSleepMs, randSleepSec, waitFor
 
 
 def processIdleOutput(output):
@@ -26,3 +26,12 @@ def processIdleBuildings():  # idle building icons
         processIdleOutput(output)
     else:
         randSleepSec(3, 7)
+
+
+def waitIdleOpened(left, top):  # todo
+    region = [left - 20, top - 70, 70, 80]
+    if waitFor(lambda: findSuppliesCollected(region)):
+        logging.debug("Bot has collected supplies something from a building.")
+        return True
+    else:
+        return False

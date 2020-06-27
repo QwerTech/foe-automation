@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import glob
 import itertools
 import threading
 import traceback
 from datetime import datetime, timedelta
-from pathlib import Path
 from time import sleep
 
 import keyboard as kb
@@ -17,15 +15,14 @@ from foe_bot_army import processArmy
 from foe_bot_gold import goldCollector
 from foe_bot_goods import processGoods
 from foe_bot_idle import processIdleBuildings
+from foe_bot_loot import lootCollector2
 from foe_bot_social import initSocialProcesses, processSocial
+from foe_bot_supplies import processSupplies
 from foe_bot_zoom import zoomOut
-from foe_control import pressCollect1, pressCollect2, ydiff1, ydiff2, pressEsc, \
-    pressButton
+from foe_control import ydiff1, pressEsc, pressButton
 from foe_pics import *
-from foe_pics import findRewardReceived
-from foe_pool import execInPool, initPool
-from foe_utils import waitFor, randDur, checkIfPaused, \
-    randSleepSec, lock
+from foe_pool import initPool
+from foe_utils import randDur, checkIfPaused, randSleepSec, lock
 
 collectGold = True  # collect gold from buildings.
 collectArmy = True  # collect gold from buildings.
@@ -80,46 +77,6 @@ def initGamesState():
 
 
 initGamesState()
-
-
-def waitSuppliesCollected(left, top):
-    region = [left - 20, top - 70, 70, 80]
-    if waitFor(lambda: findSuppliesCollected(region)):
-        logging.debug("Bot has collected supplies something from a building.")
-        return True
-    else:
-        return False
-
-
-def waitIdleOpened(left, top):  # todo
-    region = [left - 20, top - 70, 70, 80]
-    if waitFor(lambda: findSuppliesCollected(region)):
-        logging.debug("Bot has collected supplies something from a building.")
-        return True
-    else:
-        return False
-
-
-def processSupplies():  # supplies icons
-    output = findSupplies()
-    if output is not None:
-        logging.info("Found supplies %s", output)
-        with lock:
-            checkIfPaused()
-            # get coordinates to click from output
-            pressCollect1(output)
-            if waitSuppliesCollected(output.left, output.top + ydiff1):
-                return
-
-            pressEsc()
-            pressCollect2(output)
-            if waitSuppliesCollected(output.left, output.top + ydiff1 + ydiff2):
-                return
-
-            pressEsc()
-    else:
-        randSleepSec(3, 7)
-
 
 socialProcesses = []
 
@@ -231,7 +188,7 @@ def moveToFirstDesktop():
         foe_desktops.moveToFirstDesktop()
 
 
-def switchBots():
+def switchSlave():
     windows = foe_desktops.getGameWindows()
     foe_desktops.hideAll()
     for window in itertools.cycle(windows):
@@ -258,72 +215,6 @@ def startBot(botFunction, toggle):
 def rebooter():
     wait(GameState.needToReboot)
     reboot()
-
-
-def collectLoot():
-    loot = findLoot()
-    while loot is not None:
-        if loot is None:
-            return
-        pressButton(loot, False)
-        waitFor(findRewardReceived, 10)
-        pressEsc()
-        loot = findLoot()
-
-
-def lootCollector2():
-    with lock:
-        moveTo(lambda: right() or up(), findUpRightCorner)
-        collectLoot()
-        moveTo(lambda: right() or down(), findDownRightCorner)
-        collectLoot()
-        moveTo(lambda: left() or down(), findDownLeftCorner)
-        collectLoot()
-        moveTo(lambda: left() or up(), findUpLeftCorner)
-        collectLoot()
-        moveTo(lambda: right(), findCoastOnTheRight)
-    randSleepSec(90, 180)
-
-
-def moveTo(move, findFunc):
-    maxIterations = 26
-
-    while findFunc() is None and maxIterations > 0:
-        checkIfPaused()
-        move()
-        maxIterations = maxIterations - 1
-
-
-def left(): pressDelayed('left')
-
-
-def down(): pressDelayed('down')
-
-
-def up(): pressDelayed('up')
-
-
-def right(): pressDelayed('right')
-
-
-def pressDelayed(key: str, delay=0.1):
-    pyautogui.keyDown(key)
-    sleep(delay)
-    pyautogui.keyUp(key)
-
-
-def findLoot():
-    pics = []
-    for file in glob.glob("resources/loot/*.png"):
-        name = Path(file).stem
-        pic = f"loot/{name}"
-        pics.append(pic)
-    for i in range(0, 3):
-        found = execInPool(findPic, pics)
-        found = [pic for pic in found if pic is not None]
-        if found:
-            return found[0]
-        randSleepSec()
 
 
 def safeInfiniteLoopFactory(func):
@@ -357,7 +248,7 @@ if __name__ == "__main__":
     startBot(zoomOut, doZoomOut)
     startBot(processGuild, collectGuild)
     startBot(unstuck, doUnstuck)
-    startBot(switchBots, doSwitchBots)
+    startBot(switchSlave, doSwitchBots)
     startBot(rebooter, rebootSomeTime)
     initPool()
     startBot(lootCollector2, doCollectLoot2)

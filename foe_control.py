@@ -1,5 +1,6 @@
 import logging
 from random import randint
+from time import sleep
 
 import pyautogui
 
@@ -61,3 +62,21 @@ def pressButton(output, suppressESC):
         logging.debug("Bot has clicked a button.")
         if not suppressESC:
             pressEsc()
+
+
+def left(): pressDelayed('left')
+
+
+def down(): pressDelayed('down')
+
+
+def up(): pressDelayed('up')
+
+
+def right(): pressDelayed('right')
+
+
+def pressDelayed(key: str, delay=0.1):
+    pyautogui.keyDown(key)
+    sleep(delay)
+    pyautogui.keyUp(key)
