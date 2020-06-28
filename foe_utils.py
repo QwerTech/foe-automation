@@ -1,5 +1,6 @@
 import logging
 import threading
+from datetime import datetime
 from random import randint
 from time import sleep
 
@@ -8,7 +9,31 @@ from waiting import wait, TimeoutExpired
 from win32api import GetKeyState
 from win32con import VK_SCROLL
 
-lock = threading.RLock()
+
+class LoggingRLock():
+    def __init__(self, lock):
+        self._lock = lock
+        self._startTime = None
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, type, value, traceback):
+        self.release()
+
+    def acquire(self):
+        self._startTime = datetime.now()
+        self._lock.acquire()
+
+    def release(self):
+        delta = datetime.now() - self._startTime
+        total_seconds = delta.total_seconds()
+        if total_seconds > 3:
+            logging.warning(f"lock took {(int)(total_seconds)}s")
+        self._lock.release()
+
+
+lock = LoggingRLock(threading.RLock())
 
 
 def waitFor(findPicFunc, timeout_seconds=0.5, sleep_seconds=0):

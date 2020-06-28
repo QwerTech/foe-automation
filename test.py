@@ -1,7 +1,8 @@
 import unittest
+from time import sleep
 
-import foe_desktops
 from foe_pics import *
+from foe_utils import lock
 
 root = 'testresources/'
 
@@ -21,12 +22,14 @@ class Task():
         self.screenshot = screenshot
 
 
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(threadName)s:%(levelname)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 class MyTestCase(unittest.TestCase):
 
     def test_something(self):
-        windows = foe_desktops.getGameWindows()
-        for window in windows:
-            pass
+        with lock:
+            sleep(2)
 
 
 if __name__ == '__main__':
