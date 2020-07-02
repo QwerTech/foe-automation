@@ -3,7 +3,7 @@ from time import sleep
 import pyautogui
 import pygetwindow as gw
 
-from foe_utils import lock, checkIfPaused
+from foe_utils import lock, checkIfPaused, randSleepMs
 
 currentDesktop = 1
 numberOfDesktops = 2  # number of virtual desktop screens
@@ -59,6 +59,7 @@ def trySkip(func):
 
 def hideAll():
     pyautogui.hotkey('win', 'd')
+    randSleepMs()
     for window in getGameWindows():
         hide(window)
 
@@ -66,12 +67,20 @@ def hideAll():
 def show(window):
     if not window.isMaximized:
         window.maximize()
+        randSleepMs()
     if not window.isActive:
-        trySkip(lambda: window.activate())
+        trySkip(lambda: activate(window))
+
+
+def activate(window):
+    window.activate()
+    randSleepMs()
 
 
 def hide(window):
-    window.minimize()
+    if not window.isMinimized:
+        window.minimize()
+        randSleepMs()
 
 
 def getGameWindows():
