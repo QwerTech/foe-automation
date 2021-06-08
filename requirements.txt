@@ -6,7 +6,7 @@ PyAutoGUI==0.9.50
 
 pywin32==228
 keyboard==0.13.5
-Pillow==7.1.2
+Pillow==8.2.0
 PyScreeze==0.1.26
 waiting==1.4.1
 PyGetWindow==0.0.8
